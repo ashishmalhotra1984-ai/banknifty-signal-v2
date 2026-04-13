@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BN Connect Test</title>
+<style>
+body { font-family: monospace; padding: 20px; background: #f5f5f5; }
+input { width: 100%; padding: 10px; font-size: 14px; margin: 10px 0; box-sizing: border-box; }
+button { width: 100%; padding: 14px; font-size: 16px; background: #00a36b; color: white; border: none; border-radius: 6px; cursor: pointer; margin: 6px 0; }
+button.secondary { background: #1a6fd4; }
+#log { background: #000; color: #00ff00; padding: 14px; border-radius: 6px; font-size: 12px; min-height: 200px; white-space: pre-wrap; word-break: break-all; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<h2>BN Signal — Connection Test</h2>
+
+<p>Paste your Kite access token:</p>
+<input type="password" id="token" placeholder="Paste token here..." />
+
+<button onclick="testDirect()">TEST 1: Direct Kite API call</button>
+<button class="secondary" onclick="testProxy()">TEST 2: Via Netlify Proxy</button>
+<button onclick="clearLog()" style="background:#666">Clear Log</button>
+
+<div id="log">Tap a test button to start...\n</div>
+
+<script>
+const API_KEY = 'emlejwo63jey9jve';
+
+function log(msg) {
+  const el = document.getElementById('log');
+  el.textContent += '\n' + new Date().toLocaleTimeString() + ' → ' + msg;
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearLog() {
+  document.getElementById('log').textContent = 'Log cleared.\n';
+}
+
+async function testDirect() {
+  const token = document.getElementById('token').value.trim();
+  if (!token) { log('ERROR: No token pasted'); return; }
+  log('Testing DIRECT call to api.kite.trade...');
+  try {
+    const res = await fetch(
+      'https://api.kite.trade/quote?i=NSE%3ANIFTY+BANK',
+      { headers: { 'X-Kite-Version': '3', 'Authorization': `token ${API_KEY}:${token}` } }
+    );
+    log('HTTP status: ' + res.status);
+    const json = await res.json();
+    log('Response status: ' + json.status);
+    if (json.data && json.data['NSE:NIFTY BANK']) {
+      log('BN Price: ' + json.data['NSE:NIFTY BANK'].last_price);
+      log('SUCCESS ✓ Direct call works!');
+    } else {
+      log('Data: ' + JSON.stringify(json).slice(0, 200));
+    }
+  } catch(e) {
+    log('ERROR: ' + e.message);
+    log('(CORS blocked — expected on direct call)');
+  }
+}
+
+async function testProxy() {
+  const token = document.getElementById('token').value.trim();
+  if (!token) { log('ERROR: No token pasted'); return; }
+  log('Testing via NETLIFY PROXY...');
+  try {
+    const url = `/.netlify/functions/quote?symbols=NSE:NIFTY BANK&token=${token}&api_key=${API_KEY}`;
+    log('URL: ' + url.slice(0, 80));
+    const res = await fetch(url);
+    log('HTTP status: ' + res.status);
+    const text = await res.text();
+    log('Raw response: ' + text.slice(0, 300));
+    try {
+      const json = JSON.parse(text);
+      log('JSON status: ' + json.status);
+      if (json.data && json.data['NSE:NIFTY BANK']) {
+        log('BN Price: ' + json.data['NSE:NIFTY BANK'].last_price);
+        log('SUCCESS ✓ Proxy works!');
+      }
+    } catch(e2) {
+      log('JSON parse error: ' + e2.message);
+    }
+  } catch(e) {
+    log('ERROR: ' + e.message);
+  }
+}
+
+log('Page loaded. JS is working.');
+log('API Key: ' + API_KEY);
+</script>
+</body>
+</html>
