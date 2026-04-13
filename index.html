@@ -826,64 +826,13 @@ setInterval(updateClock, 1000);
 updateClock();
 
 // ═══════════════════════════════════════════════════════
-//  KITE CONNECT — OAuth flow
+//  KITE CONNECT — REST polling (no WebSocket)
 // ═══════════════════════════════════════════════════════
 const KITE_API_KEY    = 'emlejwo63jey9jve';
 const KITE_API_SECRET = 'c9zkqwgdclmqpwy1whlefvq3mr4c6g97';
 
-// On page load — check if Kite redirected back with request_token
-(function checkRedirect() {
-  const params = new URLSearchParams(window.location.search);
-  const reqToken = params.get('request_token');
-  const status   = params.get('status');
-  if (reqToken && status === 'success') {
-    // Clean URL
-    window.history.replaceState({}, document.title, window.location.pathname);
-    showConnectMsg('Login successful — generating access token...', 'ok');
-    generateAccessToken(reqToken);
-  }
-})();
-
 function kiteLogin() {
-  // Redirect to Kite login — comes back to this page with request_token
-  const redirectUrl = encodeURIComponent(window.location.href.split('?')[0]);
-  const loginUrl = `https://kite.trade/connect/login?api_key=${KITE_API_KEY}&v=3`;
-  window.location.href = loginUrl;
-}
-
-async function generateAccessToken(requestToken) {
-  try {
-    // Generate SHA-256 checksum: api_key + request_token + api_secret
-    const raw = KITE_API_KEY + requestToken + KITE_API_SECRET;
-    const msgBuf = new TextEncoder().encode(raw);
-    const hashBuf = await crypto.subtle.digest('SHA-256', msgBuf);
-    const checksum = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
-
-    const res = await fetch('https://api.kite.trade/session/token', {
-      method: 'POST',
-      headers: {
-        'X-Kite-Version': '3',
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: `api_key=${KITE_API_KEY}&request_token=${requestToken}&checksum=${checksum}`
-    });
-
-    const json = await res.json();
-    if (json.status === 'success' && json.data?.access_token) {
-      const token = json.data.access_token;
-      S.token = token;
-      // Show token step
-      document.getElementById('loginStep').style.display = 'none';
-      document.getElementById('tokenStep').style.display = 'flex';
-      document.getElementById('tokenDisplay').textContent = token.slice(0,12) + '••••••••••••';
-      showConnectMsg('✓ Access token ready — tap Connect', 'ok');
-    } else {
-      showConnectMsg('Token generation failed: ' + (json.message || 'Unknown error'), 'err');
-    }
-  } catch(e) {
-    showConnectMsg('Error generating token — try logging in again', 'err');
-    console.error(e);
-  }
+  window.open(`https://kite.trade/connect/login?api_key=${KITE_API_KEY}&v=3`, '_blank');
 }
 
 function extractAndGenerate() {
@@ -892,76 +841,100 @@ function extractAndGenerate() {
   S.token = val;
   kiteConnect();
 }
-  S.token = null;
-  document.getElementById('loginStep').style.display = 'flex';
-  document.getElementById('tokenStep').style.display = 'none';
-  document.getElementById('tokenDisplay').textContent = '';
-  showConnectMsg('', '');
-}
 
 async function kiteConnect() {
-  if (!S.token) { showConnectMsg('Login with Zerodha first', 'err'); return; }
+  if (!S.token) { showConnectMsg('Paste token first', 'err'); return; }
 
-  // Request notification permission
   if ('Notification' in window && Notification.permission !== 'granted') {
-    const perm = await Notification.requestPermission();
-    S.notifGranted = perm === 'granted';
+    await Notification.requestPermission().then(p => S.notifGranted = p === 'granted');
   } else {
     S.notifGranted = Notification.permission === 'granted';
   }
 
-  showConnectMsg('Connecting to Kite WebSocket...', 'ok');
-  connectWebSocket();
+  showConnectMsg('Testing token...', 'ok');
+
+  try {
+    const res = await fetch(
+      'https://api.kite.trade/quote?i=NSE%3ANIFTY+BANK',
+      { headers: { 'X-Kite-Version': '3', 'Authorization': `token ${KITE_API_KEY}:${S.token}` } }
+    );
+    const json = await res.json();
+
+    if (json.status !== 'success') {
+      showConnectMsg('❌ Token invalid: ' + (json.message || 'Try a fresh token'), 'err');
+      return;
+    }
+
+    S.connected = true;
+    setLiveStatus('active');
+    document.getElementById('step2').style.display = 'none';
+    document.getElementById('connectedRow').style.display = 'flex';
+    document.getElementById('tokenShort').textContent = `token: ${S.token.slice(0,8)}••••`;
+    showConnectMsg('✓ Connected — polling every 5s', 'ok');
+
+    const bnData = json.data['NSE:NIFTY BANK'];
+    if (bnData) onBNQuote(bnData);
+
+    S.pollTimer    = setInterval(pollBNPrice, 5000);
+    S.optionsTimer = setInterval(pollOptionsData, 30000);
+    setTimeout(pollOptionsData, 2000);
+
+  } catch(e) {
+    showConnectMsg('❌ Error: ' + e.message, 'err');
+  }
+}
+
+async function pollBNPrice() {
+  if (!S.token || !S.connected) return;
+  try {
+    const res = await fetch(
+      'https://api.kite.trade/quote?i=NSE%3ANIFTY+BANK',
+      { headers: { 'X-Kite-Version': '3', 'Authorization': `token ${KITE_API_KEY}:${S.token}` } }
+    );
+    const json = await res.json();
+    if (json.status !== 'success') return;
+    const bnData = json.data['NSE:NIFTY BANK'];
+    if (bnData) onBNQuote(bnData);
+  } catch(e) {}
+}
+
+function onBNQuote(data) {
+  const ltp  = data.last_price || 0;
+  const open = data.ohlc?.open || ltp;
+  const vol  = data.volume_traded || 1;
+
+  if (!S.bnOpen) S.bnOpen = open;
+  S.vwapCumPV  += ltp * vol;
+  S.vwapCumVol += vol;
+  S.vwapVal = S.vwapCumVol > 0 ? S.vwapCumPV / S.vwapCumVol : ltp;
+
+  const prev = S.bnLTP;
+  S.bnLTP = ltp;
+
+  const dir    = prev ? (ltp > prev ? 'bull' : ltp < prev ? 'bear' : '') : '';
+  const change = S.bnOpen ? ((ltp - S.bnOpen) / S.bnOpen * 100).toFixed(2) : '—';
+  const vsVwap = S.vwapVal ? (ltp > S.vwapVal ? '↑ above VWAP' : '↓ below VWAP') : '—';
+
+  setMetric('bn',   ltp.toFixed(0), `${change}% from open · ${vsVwap}`, dir, true);
+  setMetric('vwap', S.vwapVal.toFixed(0), `rolling intraday`, ltp > S.vwapVal ? 'bull' : 'bear', true);
+
+  if (S.connected) autoAnalyze();
 }
 
 function kiteDisconnect() {
-  if (S.ws) { S.ws.close(); S.ws = null; }
-  if (S.pollTimer) { clearInterval(S.pollTimer); S.pollTimer = null; }
+  if (S.pollTimer)    { clearInterval(S.pollTimer);    S.pollTimer = null; }
+  if (S.optionsTimer) { clearInterval(S.optionsTimer); S.optionsTimer = null; }
   S.connected = false;
   setLiveStatus('disconnected');
-  document.getElementById('disconnectRow').style.display = 'none';
-  document.getElementById('loginStep').style.display = 'flex';
-  document.getElementById('tokenStep').style.display = 'none';
+  document.getElementById('connectedRow').style.display = 'none';
+  document.getElementById('step2').style.display = 'block';
   showConnectMsg('Disconnected', 'err');
 }
 
-function connectWebSocket() {
-  const url = `wss://ws.kite.trade?api_key=${KITE_API_KEY}&access_token=${S.token}`;
-  S.ws = new WebSocket(url);
-
-  S.ws.onopen = () => {
-    const sub  = { a: 'subscribe', v: [TOKENS.BN_INDEX] };
-    const mode = { a: 'mode', v: ['full', [TOKENS.BN_INDEX]] };
-    S.ws.send(JSON.stringify(sub));
-    S.ws.send(JSON.stringify(mode));
-    S.connected = true;
-    setLiveStatus('active');
-    document.getElementById('tokenStep').style.display = 'none';
-    document.getElementById('disconnectRow').style.display = 'flex';
-    document.getElementById('tokenShort').textContent = `token: ${S.token.slice(0,8)}••••`;
-    showConnectMsg('✓ Connected — live BN feed active', 'ok');
-    fetchOptionsData();
-    S.pollTimer = setInterval(fetchOptionsData, 60000);
-  };
-
-  S.ws.onmessage = (evt) => {
-    if (evt.data instanceof Blob) {
-      const reader = new FileReader();
-      reader.onload = () => parseTickBinary(reader.result);
-      reader.readAsArrayBuffer(evt.data);
-    }
-  };
-
-  S.ws.onerror = () => { setLiveStatus('error'); showConnectMsg('WebSocket error — try reconnecting', 'err'); };
-
-  S.ws.onclose = () => {
-    if (S.connected) {
-      setLiveStatus('error');
-      showConnectMsg('Connection dropped — reconnecting in 5s...', 'err');
-      setTimeout(connectWebSocket, 5000);
-    }
-  };
-}
+// Stubs for removed WebSocket functions
+function connectWebSocket() {}
+function parseTickBinary() {}
+function onBNTick() {}
 
 // Parse Kite binary tick packet
 function parseTickBinary(buf) {
@@ -1009,7 +982,7 @@ function onBNTick(ltp, open, vol) {
 // ═══════════════════════════════════════════════════════
 //  OPTIONS DATA via Kite REST (ATM CE + PE)
 // ═══════════════════════════════════════════════════════
-async function fetchOptionsData() {
+async function pollOptionsData() {
   if (!S.token || !S.bnLTP) return;
   try {
     const atm = Math.round(S.bnLTP / 100) * 100;
