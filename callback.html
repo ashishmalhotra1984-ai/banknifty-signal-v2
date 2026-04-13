@@ -28,39 +28,48 @@ body { background: #f2f4f7; font-family: 'IBM Plex Mono', monospace; min-height:
   <div class="spinner" id="spinner"></div>
   <div class="token-box" id="tokenBox"></div>
   <button class="copy-btn" id="copyBtn" onclick="copyToken()">Copy Token</button>
-  <div class="instructions" id="instructions">✓ Token copied!<br><br>Go back to BN Signal V3 app → paste into Access Token box → tap Connect<br><br>This token expires at 6 AM tomorrow.</div>
+  <div class="instructions" id="instructions">
+    ✓ Token ready!<br><br>
+    Go back to <strong>BN Signal V3</strong> app →<br>
+    Paste into <strong>Access Token</strong> box →<br>
+    Tap <strong>Connect</strong><br><br>
+    Expires 6 AM tomorrow.
+  </div>
   <div class="err" id="errMsg"></div>
 </div>
 <script>
-const API_KEY='emlejwo63jey9jve',API_SECRET='c9zkqwgdclmqpwy1whlefvq3mr4c6g97';
-async function init(){
-  const p=new URLSearchParams(window.location.search);
-  const rt=p.get('request_token'),st=p.get('status');
-  if(!rt||st!=='success'){showError('No request token. Please login again.');return;}
-  document.getElementById('status').textContent='Generating access token...';
-  try{
-    const raw=API_KEY+rt+API_SECRET;
-    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw));
-    const cs=Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-    const res=await fetch('https://api.kite.trade/session/token',{method:'POST',headers:{'X-Kite-Version':'3','Content-Type':'application/x-www-form-urlencoded'},body:`api_key=${API_KEY}&request_token=${rt}&checksum=${cs}`});
-    const json=await res.json();
-    if(json.status==='success'&&json.data?.access_token){showToken(json.data.access_token);}
-    else{showError('Kite error: '+(json.message||'Unknown'));}
-  }catch(e){showError('Error: '+e.message);}
+async function init() {
+  const p = new URLSearchParams(window.location.search);
+  const rt = p.get('request_token'), st = p.get('status');
+  if (!rt || st !== 'success') { showError('No request token. Please login again.'); return; }
+  document.getElementById('status').textContent = 'Generating access token...';
+  try {
+    const res = await fetch(`/.netlify/functions/token?request_token=${rt}`);
+    const json = await res.json();
+    if (json.status === 'success' && json.data?.access_token) {
+      showToken(json.data.access_token);
+    } else {
+      showError('Kite error: ' + (json.message || 'Unknown'));
+    }
+  } catch(e) { showError('Error: ' + e.message); }
 }
-function showToken(token){
-  document.getElementById('spinner').style.display='none';
-  document.getElementById('status').textContent='✓ Access token ready!';
-  document.getElementById('status').style.color='#00a36b';
-  const b=document.getElementById('tokenBox');b.textContent=token;b.style.display='block';
-  document.getElementById('copyBtn').style.display='block';
-  navigator.clipboard?.writeText(token).then(()=>{document.getElementById('instructions').style.display='block';});
+function showToken(token) {
+  document.getElementById('spinner').style.display = 'none';
+  document.getElementById('status').textContent = '✓ Access token ready!';
+  document.getElementById('status').style.color = '#00a36b';
+  const b = document.getElementById('tokenBox'); b.textContent = token; b.style.display = 'block';
+  document.getElementById('copyBtn').style.display = 'block';
+  navigator.clipboard?.writeText(token).then(() => { document.getElementById('instructions').style.display = 'block'; });
 }
-function copyToken(){
-  const t=document.getElementById('tokenBox').textContent;
-  navigator.clipboard?.writeText(t).then(()=>{document.getElementById('copyBtn').textContent='✓ Copied!';document.getElementById('instructions').style.display='block';setTimeout(()=>{document.getElementById('copyBtn').textContent='Copy Token';},2000);});
+function copyToken() {
+  const t = document.getElementById('tokenBox').textContent;
+  navigator.clipboard?.writeText(t).then(() => {
+    document.getElementById('copyBtn').textContent = '✓ Copied!';
+    document.getElementById('instructions').style.display = 'block';
+    setTimeout(() => { document.getElementById('copyBtn').textContent = 'Copy Token'; }, 2000);
+  });
 }
-function showError(m){document.getElementById('spinner').style.display='none';document.getElementById('status').textContent='Something went wrong';document.getElementById('errMsg').textContent=m;}
+function showError(m) { document.getElementById('spinner').style.display = 'none'; document.getElementById('status').textContent = 'Something went wrong'; document.getElementById('errMsg').textContent = m; }
 init();
 </script>
 </body>
