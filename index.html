@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BankNifty Signal V3</title>
+<title>BankNifty Signal V3.0</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Bebas+Neue&display=swap');
 
@@ -20,170 +20,412 @@
   --put: #e0002e;
   --warn: #d97000;
   --info: #1a6fd4;
+  --live: #00a36b;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Mono', monospace; min-height: 100vh; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  min-height: 100vh;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='4' height='4' viewBox='0 0 4 4' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='1' cy='1' r='0.5' fill='%23000' fill-opacity='0.025'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+}
 
 .header {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 14px 20px; border-bottom: 1px solid var(--border);
-  position: sticky; top: 0; background: #fff; z-index: 50;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  z-index: 50;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
-.logo { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 0.15em; color: var(--call); }
-.logo sup { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted2); vertical-align: super; }
-.live-badge { display: flex; align-items: center; gap: 6px; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted2); }
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  letter-spacing: 0.15em;
+  color: var(--call);
+}
+.logo sup {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--muted2);
+  letter-spacing: 0.05em;
+  vertical-align: super;
+}
+.header-right { display: flex; align-items: center; gap: 12px; }
+.live-badge {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--muted2);
+  transition: color 0.3s;
+}
 .live-badge.active { color: var(--call); }
 .live-badge.error { color: var(--put); }
-.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
-.live-badge.active .live-dot { background: var(--call); box-shadow: 0 0 6px var(--call); animation: blink 1.5s infinite; }
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--muted);
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.live-badge.active .live-dot {
+  background: var(--call);
+  box-shadow: 0 0 6px var(--call);
+  animation: blink 1.5s ease infinite;
+}
+.live-badge.error .live-dot { background: var(--put); }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
+#ist-clock { font-size: 11px; color: var(--muted2); letter-spacing: 0.05em; }
+
 #timeGateBar {
-  padding: 7px 20px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
-  display: flex; justify-content: space-between; border-bottom: 1px solid var(--border);
+  padding: 7px 20px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
 }
-#timeGateBar.primary { background: rgba(0,163,107,0.06); color: var(--call); }
+#timeGateBar.primary { background: rgba(0,229,160,0.06); color: var(--call); }
 #timeGateBar.extended { background: rgba(255,170,0,0.06); color: var(--warn); }
 #timeGateBar.blocked { background: rgba(255,51,85,0.06); color: var(--put); }
-#timeGateBar.preopen { background: rgba(26,111,212,0.06); color: var(--info); }
+#timeGateBar.preopen { background: rgba(51,153,255,0.06); color: var(--info); }
 
-.wrap { max-width: 900px; margin: 0 auto; padding: 16px 20px 40px; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 16px 20px 40px; }
 
-.card { background: var(--s1); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-.card-title { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted2); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-.dot { width: 4px; height: 4px; border-radius: 50%; background: var(--muted); }
-.dot.green { background: var(--call); }
-.dot.yellow { background: var(--warn); }
-.dot.purple { background: #9966ff; }
+.card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.card-title {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted2);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title .dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--muted);
+}
+.card-title .dot.green { background: var(--call); }
+.card-title .dot.yellow { background: var(--warn); }
+.card-title .dot.blue { background: var(--info); }
+.card-title .dot.purple { background: #9966ff; }
 
-.btn { padding: 9px 18px; border: none; border-radius: 5px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: all 0.15s; }
+.kite-row {
+  display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;
+}
+.field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 180px; }
+.field label { font-size: 10px; color: var(--muted2); letter-spacing: 0.08em; text-transform: uppercase; }
+input, select {
+  background: #ffffff;
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 5px;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+input:focus, select:focus { border-color: var(--call); }
+input[type="password"] { letter-spacing: 0.1em; }
+
+.btn {
+  padding: 9px 18px;
+  border: none; border-radius: 5px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  cursor: pointer; transition: all 0.15s;
+  white-space: nowrap;
+}
 .btn-green { background: var(--call); color: #000; }
-.btn-green:hover { background: #00c47f; }
+.btn-green:hover { background: #33ffb8; }
+.btn-green:disabled { background: var(--muted); color: var(--s2); cursor: not-allowed; }
 .btn-red { background: transparent; border: 1px solid var(--put); color: var(--put); }
 .btn-red:hover { background: var(--put); color: #fff; }
+.btn-blue { background: transparent; border: 1px solid var(--info); color: var(--info); }
+.btn-blue:hover { background: var(--info); color: #000; }
 
-.connect-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-#connectMsg { font-size: 11px; margin-top: 8px; }
-#connectMsg.ok { color: var(--call); }
-#connectMsg.err { color: var(--put); }
-
-.metrics-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; margin-bottom: 14px; }
-.metric { background: #fff; border: 1px solid var(--border); border-radius: 7px; padding: 12px 14px; position: relative; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-.metric::after { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:var(--border); transition:background 0.4s; }
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.metric {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 12px 14px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.metric::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0; height: 2px;
+  background: var(--border);
+  transition: background 0.4s;
+}
 .metric.bull::after { background: var(--call); }
 .metric.bear::after { background: var(--put); }
 .metric-label { font-size: 9px; color: var(--muted2); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
-.metric-val { font-family: 'Bebas Neue', sans-serif; font-size: 24px; line-height: 1; letter-spacing: 0.05em; color: var(--muted2); transition: color 0.3s; }
+.metric-val {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  transition: color 0.3s;
+  color: var(--muted2);
+}
 .metric-val.live { color: var(--text); }
 .metric-val.bull { color: var(--call); }
 .metric-val.bear { color: var(--put); }
 .metric-sub { font-size: 9px; color: var(--muted); margin-top: 4px; }
-.auto-badge { position:absolute; top:8px; right:8px; font-size:8px; padding:1px 5px; border-radius:3px; background:rgba(0,163,107,0.12); color:var(--call); display:none; }
+.auto-badge {
+  position: absolute; top: 8px; right: 8px;
+  font-size: 8px; padding: 1px 5px; border-radius: 3px;
+  background: rgba(0,229,160,0.12); color: var(--call);
+  letter-spacing: 0.05em;
+}
 
+.signal-block {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 14px;
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 20px;
+  align-items: start;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.signal-main { text-align: center; }
+.signal-label { font-size: 9px; color: var(--muted2); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px; }
+
+.arc-wrap { position: relative; width: 140px; height: 80px; margin: 0 auto 12px; }
+.arc-svg { overflow: visible; }
+.arc-bg { fill: none; stroke: var(--border2); stroke-width: 10; stroke-linecap: round; }
+.arc-fill { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 0.8s ease, stroke 0.4s; }
+.arc-pct {
+  position: absolute;
+  bottom: -4px; left: 50%; transform: translateX(-50%);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+.verdict {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.verdict.call { color: var(--call); }
+.verdict.put { color: var(--put); }
+.verdict.wait { color: var(--muted2); }
+.verdict.blocked { color: var(--put); }
+
+.signal-pts { font-size: 10px; color: var(--muted2); margin-top: 6px; }
+
+.factors { display: flex; flex-direction: column; gap: 9px; }
+.factor-row { display: flex; align-items: center; gap: 8px; }
+.factor-name { font-size: 9px; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.08em; width: 110px; flex-shrink: 0; }
+.bar-track { flex: 1; height: 3px; background: var(--border2); border-radius: 2px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 2px; width: 0%; transition: width 0.7s ease, background 0.4s; }
+.factor-pts { font-size: 10px; width: 28px; text-align: right; flex-shrink: 0; }
+
+.reasons { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+.reason-row {
+  font-size: 11px;
+  padding: 7px 10px;
+  border-left: 3px solid var(--border);
+  background: var(--s2);
+  border-radius: 0 4px 4px 0;
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+}
+.reason-row.bull { border-left-color: var(--call); background: rgba(0,163,107,0.05); }
+.reason-row.bear { border-left-color: var(--put);  background: rgba(224,0,46,0.05); }
+.reason-row.neutral { border-left-color: var(--border2); }
+.reason-row.crit { border-left-color: var(--warn); background: rgba(217,112,0,0.05); }
+.reason-row.hi { border-left-color: var(--info); background: rgba(26,111,212,0.05); }
+.reason-text { color: var(--text); flex: 1; }
+.reason-text.bull { color: rgba(0,229,160,0.85); }
+.reason-text.bear { color: rgba(255,51,85,0.85); }
+.reason-text.neutral { color: var(--muted2); }
+.reason-text.crit { color: var(--warn); }
+.reason-pts { font-weight: 700; flex-shrink: 0; font-size: 11px; }
+
+.trade-box {
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  text-align: center;
+}
+.trade-box-item .tbi-label { font-size: 9px; color: var(--muted2); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+.trade-box-item .tbi-val { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.05em; }
+
+.override-box {
+  border: 1px solid var(--warn);
+  background: rgba(217,112,0,0.05);
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.override-verdict { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.08em; margin-bottom: 4px; }
+.override-reason { font-size: 10px; color: var(--muted2); line-height: 1.5; }
+
+.input-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .input-grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
-input, select { background: #fff; border: 1px solid var(--border2); color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 8px 10px; border-radius: 5px; outline: none; transition: border-color 0.2s; width: 100%; }
-input:focus, select:focus { border-color: var(--call); }
-.field { display: flex; flex-direction: column; gap: 5px; }
-.field label { font-size: 10px; color: var(--muted2); letter-spacing: 0.08em; text-transform: uppercase; }
-
-.save-row { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; margin-top: 10px; }
-.code-display { background: var(--s2); border: 1px solid var(--border2); border-radius: 5px; padding: 8px 12px; font-size: 11px; color: var(--info); word-break: break-all; margin: 8px 0; }
 
 .toggle-row { display: flex; gap: 8px; }
-.toggle-btn { flex:1; padding:8px; border-radius:5px; font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; cursor:pointer; border:1px solid var(--border2); background:var(--s2); color:var(--muted2); text-align:center; }
-.toggle-btn.active-green { border-color:var(--call); background:rgba(0,163,107,0.08); color:var(--call); }
-.toggle-btn.active-red { border-color:var(--put); background:rgba(224,0,46,0.08); color:var(--put); }
-.toggle-btn.active-purple { border-color:#9966ff; background:rgba(153,102,255,0.08); color:#9966ff; }
+.toggle-btn {
+  flex: 1; padding: 8px; border-radius: 5px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; font-weight: 700;
+  cursor: pointer; transition: all 0.15s;
+  border: 1px solid var(--border2);
+  background: var(--s2); color: var(--muted2);
+  text-align: center; line-height: 1.4;
+}
+.toggle-btn.active-green { border-color: var(--call); background: rgba(0,229,160,0.08); color: var(--call); }
+.toggle-btn.active-red { border-color: var(--put); background: rgba(255,51,85,0.08); color: var(--put); }
+.toggle-btn.active-blue { border-color: var(--info); background: rgba(51,153,255,0.08); color: var(--info); }
+.toggle-btn.active-purple { border-color: #9966ff; background: rgba(153,102,255,0.08); color: #9966ff; }
 
-.check-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--border); border-radius:5px; cursor:pointer; user-select:none; }
-.check-item.checked { border-color:var(--warn); background:rgba(217,112,0,0.05); }
-.check-box { width:14px; height:14px; border-radius:3px; border:1px solid var(--border2); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.check-item.checked .check-box { border-color:var(--warn); background:var(--warn); color:#000; font-size:9px; }
-.check-label { font-size:12px; color:var(--muted2); }
-.check-item.checked .check-label { color:var(--warn); }
+.check-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  user-select: none;
+}
+.check-item:hover { border-color: var(--border2); }
+.check-item.checked { border-color: var(--warn); background: rgba(255,170,0,0.05); }
+.check-item input { display: none; }
+.check-box {
+  width: 14px; height: 14px; border-radius: 3px;
+  border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all 0.15s;
+}
+.check-item.checked .check-box { border-color: var(--warn); background: var(--warn); color: #000; font-size: 9px; }
+.check-label { font-size: 12px; color: var(--muted2); transition: color 0.2s; }
+.check-item.checked .check-label { color: var(--warn); }
 
-#analyzeBtn { width:100%; padding:14px; font-size:16px; letter-spacing:0.15em; border-radius:7px; margin-bottom:14px; }
+.code-display {
+  background: var(--s2);
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  padding: 10px 12px;
+  font-size: 11px;
+  color: var(--info);
+  word-break: break-all;
+  letter-spacing: 0.03em;
+  margin: 10px 0;
+}
+.msg { font-size: 10px; margin-top: 6px; letter-spacing: 0.05em; }
+.msg.ok { color: var(--call); }
+.msg.err { color: var(--put); }
 
-.signal-block { background:#fff; border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:14px; display:grid; grid-template-columns:200px 1fr; gap:20px; align-items:start; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
-.signal-main { text-align:center; }
-.signal-label { font-size:9px; color:var(--muted2); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:8px; }
-.arc-wrap { position:relative; width:140px; height:80px; margin:0 auto 12px; }
-.arc-svg { overflow:visible; }
-.arc-bg { fill:none; stroke:var(--border2); stroke-width:10; stroke-linecap:round; }
-.arc-fill { fill:none; stroke-width:10; stroke-linecap:round; transition:stroke-dashoffset 0.8s ease, stroke 0.4s; }
-.arc-pct { position:absolute; bottom:-4px; left:50%; transform:translateX(-50%); font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:0.05em; line-height:1; }
-.verdict { font-family:'Bebas Neue',sans-serif; font-size:36px; letter-spacing:0.1em; line-height:1; margin-bottom:4px; }
-.verdict.call { color:var(--call); }
-.verdict.put { color:var(--put); }
-.verdict.wait { color:var(--muted2); }
-.signal-pts { font-size:10px; color:var(--muted2); margin-top:6px; }
+#analyzeBtn {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  letter-spacing: 0.15em;
+  border-radius: 7px;
+  margin-bottom: 14px;
+}
 
-.factors { display:flex; flex-direction:column; gap:9px; }
-.factor-row { display:flex; align-items:center; gap:8px; }
-.factor-name { font-size:9px; color:var(--muted2); text-transform:uppercase; letter-spacing:0.08em; width:110px; flex-shrink:0; }
-.bar-track { flex:1; height:3px; background:var(--border2); border-radius:2px; overflow:hidden; }
-.bar-fill { height:100%; border-radius:2px; width:0%; transition:width 0.7s ease, background 0.4s; }
-.factor-pts { font-size:10px; width:28px; text-align:right; flex-shrink:0; }
-
-.reasons { display:flex; flex-direction:column; gap:6px; margin-top:14px; }
-.reason-row { font-size:11px; padding:7px 10px; border-left:3px solid var(--border); background:var(--s2); border-radius:0 4px 4px 0; display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
-.reason-row.bull { border-left-color:var(--call); background:rgba(0,163,107,0.05); }
-.reason-row.bear { border-left-color:var(--put); background:rgba(224,0,46,0.05); }
-.reason-row.neutral { border-left-color:var(--border2); }
-.reason-row.crit { border-left-color:var(--warn); background:rgba(217,112,0,0.05); }
-.reason-row.hi { border-left-color:var(--info); background:rgba(26,111,212,0.05); }
-.reason-text { color:var(--text); flex:1; }
-.reason-text.bull { color:rgba(0,163,107,0.9); }
-.reason-text.bear { color:rgba(224,0,46,0.9); }
-.reason-text.neutral { color:var(--muted2); }
-.reason-text.crit { color:var(--warn); }
-.reason-pts { font-weight:700; flex-shrink:0; font-size:11px; }
-
-.trade-box { border:1px solid var(--border2); border-radius:6px; padding:12px 14px; margin-top:14px; display:grid; grid-template-columns:repeat(3,1fr); gap:12px; text-align:center; }
-.tbi-label { font-size:9px; color:var(--muted2); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px; }
-.tbi-val { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.05em; }
-
-.override-box { border:1px solid var(--warn); background:rgba(217,112,0,0.05); border-radius:6px; padding:12px 14px; margin-bottom:12px; }
-.override-verdict { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.08em; margin-bottom:4px; }
-.override-reason { font-size:10px; color:var(--muted2); line-height:1.5; }
-
-.log-list { display:flex; flex-direction:column; gap:8px; }
-.log-item { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; background:var(--s2); border-radius:6px; border-left:3px solid var(--border); animation:slideIn 0.3s ease; }
-.log-item.call { border-left-color:var(--call); background:rgba(0,163,107,0.05); }
-.log-item.put { border-left-color:var(--put); background:rgba(224,0,46,0.05); }
+.log-list { display: flex; flex-direction: column; gap: 8px; }
+.log-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px;
+  background: var(--s2);
+  border-radius: 6px;
+  border-left: 3px solid var(--border);
+  animation: slideIn 0.3s ease;
+}
+.log-item.call { border-left-color: var(--call); background: rgba(0,163,107,0.05); }
+.log-item.put  { border-left-color: var(--put);  background: rgba(224,0,46,0.05); }
 @keyframes slideIn { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:translateX(0)} }
-.log-badge { font-size:9px; font-weight:700; padding:2px 7px; border-radius:3px; flex-shrink:0; letter-spacing:0.06em; }
-.log-badge.call { background:rgba(0,163,107,0.15); color:var(--call); }
-.log-badge.put { background:rgba(224,0,46,0.15); color:var(--put); }
-.log-body { flex:1; }
-.log-title { font-size:11px; margin-bottom:2px; }
-.log-detail { font-size:10px; color:var(--muted2); line-height:1.5; }
-.log-time { font-size:9px; color:var(--muted); flex-shrink:0; }
-.empty-log { font-size:11px; color:var(--muted); text-align:center; padding:20px 0; }
+.log-badge { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 3px; flex-shrink: 0; letter-spacing: 0.06em; }
+.log-badge.call { background: rgba(0,229,160,0.15); color: var(--call); }
+.log-badge.put { background: rgba(255,51,85,0.15); color: var(--put); }
+.log-body { flex: 1; }
+.log-title { font-size: 11px; margin-bottom: 2px; }
+.log-detail { font-size: 10px; color: var(--muted2); line-height: 1.5; }
+.log-time { font-size: 9px; color: var(--muted); flex-shrink: 0; }
+.empty-log { font-size: 11px; color: var(--muted); text-align: center; padding: 20px 0; }
 
-#signalPopup { position:fixed; top:20px; right:20px; width:300px; background:#fff; border-radius:10px; padding:18px 20px; z-index:200; box-shadow:0 8px 32px rgba(0,0,0,0.15); display:none; animation:popIn 0.4s cubic-bezier(0.34,1.56,0.64,1); }
-#signalPopup.show { display:block; }
-#signalPopup.call-popup { border:1px solid var(--call); border-left:4px solid var(--call); }
-#signalPopup.put-popup { border:1px solid var(--put); border-left:4px solid var(--put); }
+#signalPopup {
+  position: fixed;
+  top: 20px; right: 20px;
+  width: 300px;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 18px 20px;
+  z-index: 200;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  display: none;
+  animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+#signalPopup.show { display: block; }
+#signalPopup.call-popup { border: 1px solid var(--call); border-left: 4px solid var(--call); }
+#signalPopup.put-popup { border: 1px solid var(--put); border-left: 4px solid var(--put); }
 @keyframes popIn { from{opacity:0;transform:translateX(30px) scale(0.95)} to{opacity:1;transform:translateX(0) scale(1)} }
-.popup-close { position:absolute; top:10px; right:12px; cursor:pointer; color:var(--muted2); background:none; border:none; font-size:16px; }
-.popup-eyebrow { font-size:9px; color:var(--muted2); letter-spacing:0.12em; text-transform:uppercase; }
-.popup-signal { font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:0.1em; margin:4px 0 8px; }
-.popup-signal.call { color:var(--call); }
-.popup-signal.put { color:var(--put); }
-.popup-meta { font-size:10px; color:var(--muted2); line-height:1.6; }
+.popup-close { position: absolute; top: 10px; right: 12px; cursor: pointer; color: var(--muted2); background: none; border: none; font-size: 16px; }
+.popup-eyebrow { font-size: 9px; color: var(--muted2); letter-spacing: 0.12em; text-transform: uppercase; }
+.popup-signal { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 0.1em; margin: 4px 0 8px; }
+.popup-signal.call { color: var(--call); }
+.popup-signal.put { color: var(--put); }
+.popup-meta { font-size: 10px; color: var(--muted2); line-height: 1.6; }
+.popup-pct { font-size: 13px; font-weight: 700; }
 
 @keyframes flashCard { 0%{background:rgba(0,163,107,0.1)} 100%{background:transparent} }
-.flash { animation:flashCard 0.7s ease; }
+.flash { animation: flashCard 0.7s ease; }
 
-.footer { text-align:center; font-size:9px; color:var(--muted); letter-spacing:0.06em; padding:20px 0 0; border-top:1px solid var(--border); margin-top:8px; }
+.footer { text-align: center; font-size: 9px; color: var(--muted); letter-spacing: 0.06em; padding: 20px 0 0; border-top: 1px solid var(--border); margin-top: 8px; }
 
 @media(max-width:700px) {
-  .metrics-grid { grid-template-columns:repeat(3,1fr); }
-  .signal-block { grid-template-columns:1fr; }
-  .input-grid-4 { grid-template-columns:1fr 1fr; }
+  .metrics-grid { grid-template-columns: repeat(3,1fr); }
+  .signal-block { grid-template-columns: 1fr; }
+  .input-grid-4 { grid-template-columns: 1fr 1fr; }
 }
 </style>
 </head>
@@ -191,8 +433,8 @@ input:focus, select:focus { border-color: var(--call); }
 
 <div class="header">
   <div class="logo">BankNifty<sup>SIGNAL V3</sup></div>
-  <div style="display:flex;align-items:center;gap:12px">
-    <span id="istClock" style="font-size:11px;color:var(--muted2)"></span>
+  <div class="header-right">
+    <span id="istClock" style="font-size:11px;color:var(--muted2);letter-spacing:0.05em"></span>
     <div class="live-badge" id="liveBadge">
       <div class="live-dot"></div>
       <span id="liveText">DISCONNECTED</span>
@@ -207,52 +449,93 @@ input:focus, select:focus { border-color: var(--call); }
 
 <div class="wrap">
 
-  <!-- CONNECT -->
   <div class="card">
-    <div class="card-title"><div class="dot green"></div>NSE Live Data · Free · No API Key Needed</div>
-    <div class="connect-row">
-      <button class="btn btn-green" id="connectBtn" onclick="startFeed()">▶ Start Live Feed</button>
-      <button class="btn btn-red" id="stopBtn" onclick="stopFeed()" style="display:none">■ Stop</button>
-      <span style="font-size:10px;color:var(--muted2)">Polls NSE every 10s · No login required</span>
+    <div class="card-title"><div class="dot green"></div>Kite API Connection</div>
+
+    <div id="step1" style="margin-bottom:12px">
+      <button class="btn btn-green" onclick="kiteLogin()" style="font-size:13px;padding:10px 22px">
+        🔐 Step 1 — Login with Zerodha
+      </button>
+      <div style="font-size:10px;color:var(--muted2);margin-top:6px;line-height:1.6">
+        Opens Kite login. After login you'll land on a blank page — copy the full URL from the address bar and paste below.
+      </div>
     </div>
-    <div id="connectMsg" style="font-size:11px;margin-top:8px"></div>
+
+    <div id="step2" style="margin-bottom:12px">
+      <div style="font-size:10px;color:var(--muted2);margin-bottom:5px;letter-spacing:0.06em;text-transform:uppercase">Step 2 — Paste Access Token here</div>
+      <div style="display:flex;gap:8px">
+        <input type="password" id="redirectUrl" placeholder="Paste access token from Netlify page..." style="font-size:11px;flex:1" />
+        <button class="btn btn-green" onclick="extractAndGenerate()" style="font-size:11px;padding:8px 14px;white-space:nowrap">Connect</button>
+      </div>
+      <div style="font-size:10px;color:var(--muted2);margin-top:5px">Get token from shimmering-fairy-19e23e.netlify.app after Zerodha login</div>
+    </div>
+
+    <div id="step3" style="display:none;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="font-size:11px;color:var(--info);background:var(--s2);border:1px solid var(--border2);padding:6px 12px;border-radius:5px" id="tokenDisplay">—</div>
+        <button class="btn btn-green" id="connectBtn" onclick="kiteConnect()" style="font-size:12px">▶ Connect Live Feed</button>
+        <button class="btn" onclick="resetLogin()" style="font-size:11px;padding:7px 12px;border:1px solid var(--border2);color:var(--muted2)">Reset</button>
+      </div>
+    </div>
+
+    <div id="connectedRow" style="display:none;align-items:center;gap:12px">
+      <div style="font-size:11px;color:var(--muted2)" id="tokenShort"></div>
+      <div class="field" style="max-width:120px;margin:0">
+        <label>Expiry</label>
+        <select id="expiryType">
+          <option value="weekly">Weekly</option>
+          <option value="monthly" selected>Monthly</option>
+        </select>
+      </div>
+      <button class="btn btn-red" onclick="kiteDisconnect()" style="font-size:11px">Stop</button>
+    </div>
+
+    <div id="expiryRow" style="display:flex;align-items:center;gap:10px;margin-top:10px">
+      <div class="field" style="max-width:120px;margin:0">
+        <label>Expiry</label>
+        <select id="expiryType2" onchange="document.getElementById('expiryType') && (document.getElementById('expiryType').value = this.value)">
+          <option value="weekly">Weekly</option>
+          <option value="monthly" selected>Monthly</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="connectMsg" class="msg" style="margin-top:8px"></div>
   </div>
 
-  <!-- METRICS -->
   <div class="metrics-grid">
     <div class="metric" id="m-bn">
-      <div class="auto-badge" id="ab-bn">LIVE</div>
+      <div class="auto-badge" id="ab-bn" style="display:none">LIVE</div>
       <div class="metric-label">BN Spot</div>
       <div class="metric-val" id="mv-bn">—</div>
       <div class="metric-sub" id="ms-bn">awaiting feed</div>
     </div>
     <div class="metric" id="m-vwap">
-      <div class="auto-badge" id="ab-vwap">MANUAL</div>
-      <div class="metric-label">Prev Close</div>
+      <div class="auto-badge" id="ab-vwap" style="display:none">AUTO</div>
+      <div class="metric-label">VWAP</div>
       <div class="metric-val" id="mv-vwap">—</div>
       <div class="metric-sub" id="ms-vwap">—</div>
     </div>
     <div class="metric" id="m-pcr">
-      <div class="auto-badge" id="ab-pcr">LIVE</div>
+      <div class="auto-badge" id="ab-pcr" style="display:none">AUTO</div>
       <div class="metric-label">PCR</div>
       <div class="metric-val" id="mv-pcr">—</div>
       <div class="metric-sub" id="ms-pcr">—</div>
     </div>
     <div class="metric" id="m-iv">
-      <div class="auto-badge" id="ab-iv">LIVE</div>
-      <div class="metric-label">ATM IV</div>
+      <div class="auto-badge" id="ab-iv" style="display:none">AUTO</div>
+      <div class="metric-label">IV Δ (C/P)</div>
       <div class="metric-val" id="mv-iv">—</div>
       <div class="metric-sub" id="ms-iv">—</div>
     </div>
     <div class="metric" id="m-oi">
-      <div class="auto-badge" id="ab-oi">LIVE</div>
-      <div class="metric-label">OI Bias</div>
+      <div class="auto-badge" id="ab-oi" style="display:none">AUTO</div>
+      <div class="metric-label">OI Buildup</div>
       <div class="metric-val" id="mv-oi">—</div>
       <div class="metric-sub" id="ms-oi">—</div>
     </div>
   </div>
 
-  <!-- PRICE CONTEXT -->
   <div class="card">
     <div class="card-title"><div class="dot green"></div>Price Context · Enter Once at Open</div>
     <div class="input-grid-4" style="margin-bottom:10px">
@@ -261,21 +544,22 @@ input:focus, select:focus { border-color: var(--call); }
       <div class="field"><label>GIFT BankNifty %</label><input type="number" step="0.01" id="giftNifty" placeholder="+3.28" /></div>
       <div class="field"><label>NASDAQ % (prev)</label><input type="number" step="0.01" id="nasdaqChange" placeholder="+0.04" /></div>
     </div>
-    <div class="save-row">
-      <button class="btn" style="background:var(--info);color:#fff;font-size:10px;padding:7px 14px" onclick="saveConfig()">💾 Save Config</button>
-      <div style="flex:1;min-width:200px;display:flex;gap:6px">
-        <input type="text" id="configCode" placeholder="Paste BN:... code to restore" style="font-size:10px" />
-        <button class="btn" style="background:var(--info);color:#fff;font-size:10px;padding:7px 12px" onclick="loadConfig()">Load</button>
+    <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap">
+      <button class="btn btn-blue" onclick="saveConfig()" style="font-size:10px;padding:7px 14px">💾 Save Config</button>
+      <div style="flex:1;min-width:200px">
+        <div style="display:flex;gap:6px">
+          <input type="text" id="configCode" placeholder="Paste BN:... code to restore" style="font-size:10px" />
+          <button class="btn btn-blue" onclick="loadConfig()" style="font-size:10px;padding:7px 12px">Load</button>
+        </div>
       </div>
     </div>
     <div id="savedCodeDisplay" style="display:none">
       <div class="code-display" id="savedCodeText"></div>
-      <button class="btn" onclick="copyCode()" style="background:var(--info);color:#fff;font-size:10px;padding:6px 12px;margin-top:4px">Copy</button>
+      <button class="btn btn-blue" onclick="copyCode()" style="font-size:10px;padding:6px 12px;margin-top:4px">Copy</button>
     </div>
-    <div id="configMsg" style="font-size:10px;margin-top:6px"></div>
+    <div id="configMsg" class="msg"></div>
   </div>
 
-  <!-- TRADE GUARDRAIL -->
   <div class="card">
     <div class="card-title"><div class="dot purple"></div>Trade Guardrail</div>
     <div class="toggle-row" style="margin-bottom:10px">
@@ -291,42 +575,43 @@ input:focus, select:focus { border-color: var(--call); }
     </div>
   </div>
 
-  <!-- EXPIRY -->
-  <div class="card" style="padding:12px 18px">
-    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-      <div class="card-title" style="margin:0">Expiry Type</div>
-      <div class="toggle-row" style="flex:1;max-width:300px">
-        <div class="toggle-btn" id="exp-weekly" onclick="setExpiry('weekly')">📅 Weekly · closes 2 PM</div>
-        <div class="toggle-btn active-green" id="exp-monthly" onclick="setExpiry('monthly')">📆 Monthly · closes 3 PM</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- NEWS -->
   <div class="card">
     <div class="card-title"><div class="dot yellow"></div>Major News Events Today?</div>
     <div style="display:flex;flex-direction:column;gap:8px">
-      <label class="check-item" id="ci-oil" onclick="toggleCheck('oil')"><div class="check-box" id="cb-oil"></div><span class="check-label">🛢️ Oil Price Shock (&gt;10% spike)</span></label>
-      <label class="check-item" id="ci-war" onclick="toggleCheck('war')"><div class="check-box" id="cb-war"></div><span class="check-label">⚔️ War / Major Geopolitical Event</span></label>
-      <label class="check-item" id="ci-crash" onclick="toggleCheck('crash')"><div class="check-box" id="cb-crash"></div><span class="check-label">📉 Global Market Crash (&gt;2% down)</span></label>
+      <label class="check-item" id="ci-oil" onclick="toggleCheck('oil')">
+        <div class="check-box" id="cb-oil"></div>
+        <span class="check-label">🛢️ Oil Price Shock (&gt;10% spike)</span>
+      </label>
+      <label class="check-item" id="ci-war" onclick="toggleCheck('war')">
+        <div class="check-box" id="cb-war"></div>
+        <span class="check-label">⚔️ War / Major Geopolitical Event</span>
+      </label>
+      <label class="check-item" id="ci-crash" onclick="toggleCheck('crash')">
+        <div class="check-box" id="cb-crash"></div>
+        <span class="check-label">📉 Global Market Crash (&gt;2% down)</span>
+      </label>
     </div>
   </div>
 
   <button class="btn btn-green" id="analyzeBtn" onclick="analyzeSignal()">→ ANALYZE SIGNAL</button>
 
-  <!-- SIGNAL OUTPUT -->
   <div id="signalOutput" style="display:none">
+
     <div id="overrideBox" class="override-box" style="display:none">
       <div class="override-verdict" id="overrideVerdict"></div>
       <div class="override-reason" id="overrideReason"></div>
     </div>
+
     <div class="signal-block" id="signalBlock">
       <div class="signal-main">
         <div class="signal-label">Signal Confidence</div>
         <div class="arc-wrap">
           <svg class="arc-svg" width="140" height="80" viewBox="0 0 140 80">
             <path class="arc-bg" d="M 10 75 A 60 60 0 0 1 130 75" />
-            <path class="arc-fill" id="arcFill" d="M 10 75 A 60 60 0 0 1 130 75" stroke="var(--muted)" stroke-dasharray="188.5" stroke-dashoffset="188.5" />
+            <path class="arc-fill" id="arcFill" d="M 10 75 A 60 60 0 0 1 130 75"
+              stroke="var(--muted)"
+              stroke-dasharray="188.5"
+              stroke-dashoffset="188.5" />
           </svg>
           <div class="arc-pct" id="arcPct" style="color:var(--muted2)">0%</div>
         </div>
@@ -335,33 +620,66 @@ input:focus, select:focus { border-color: var(--call); }
       </div>
       <div>
         <div class="factors">
-          <div class="factor-row"><div class="factor-name">Price/Close</div><div class="bar-track"><div class="bar-fill" id="bf0"></div></div><div class="factor-pts" id="fp0">—</div></div>
-          <div class="factor-row"><div class="factor-name">Breakout</div><div class="bar-track"><div class="bar-fill" id="bf1"></div></div><div class="factor-pts" id="fp1">—</div></div>
-          <div class="factor-row"><div class="factor-name">PCR</div><div class="bar-track"><div class="bar-fill" id="bf2"></div></div><div class="factor-pts" id="fp2">—</div></div>
-          <div class="factor-row"><div class="factor-name">IV</div><div class="bar-track"><div class="bar-fill" id="bf3"></div></div><div class="factor-pts" id="fp3">—</div></div>
-          <div class="factor-row"><div class="factor-name">GIFT/NDX</div><div class="bar-track"><div class="bar-fill" id="bf4"></div></div><div class="factor-pts" id="fp4">—</div></div>
-          <div class="factor-row"><div class="factor-name">News</div><div class="bar-track"><div class="bar-fill" id="bf5"></div></div><div class="factor-pts" id="fp5">—</div></div>
+          <div class="factor-row">
+            <div class="factor-name">Price/VWAP</div>
+            <div class="bar-track"><div class="bar-fill" id="bf0"></div></div>
+            <div class="factor-pts" id="fp0">—</div>
+          </div>
+          <div class="factor-row">
+            <div class="factor-name">Breakout</div>
+            <div class="bar-track"><div class="bar-fill" id="bf1"></div></div>
+            <div class="factor-pts" id="fp1">—</div>
+          </div>
+          <div class="factor-row">
+            <div class="factor-name">PCR</div>
+            <div class="bar-track"><div class="bar-fill" id="bf2"></div></div>
+            <div class="factor-pts" id="fp2">—</div>
+          </div>
+          <div class="factor-row">
+            <div class="factor-name">IV Diff</div>
+            <div class="bar-track"><div class="bar-fill" id="bf3"></div></div>
+            <div class="factor-pts" id="fp3">—</div>
+          </div>
+          <div class="factor-row">
+            <div class="factor-name">GIFT/NDX</div>
+            <div class="bar-track"><div class="bar-fill" id="bf4"></div></div>
+            <div class="factor-pts" id="fp4">—</div>
+          </div>
+          <div class="factor-row">
+            <div class="factor-name">News</div>
+            <div class="bar-track"><div class="bar-fill" id="bf5"></div></div>
+            <div class="factor-pts" id="fp5">—</div>
+          </div>
         </div>
+
         <div class="trade-box" id="tradeBox" style="display:none">
-          <div><div class="tbi-label">Strike</div><div class="tbi-val" id="tb-strike">—</div></div>
-          <div><div class="tbi-label">Stop Loss</div><div class="tbi-val" id="tb-sl" style="color:var(--put)">—</div></div>
-          <div><div class="tbi-label">Target</div><div class="tbi-val" id="tb-tgt" style="color:var(--call)">—</div></div>
+          <div class="trade-box-item">
+            <div class="tbi-label">Strike</div>
+            <div class="tbi-val" id="tb-strike">—</div>
+          </div>
+          <div class="trade-box-item">
+            <div class="tbi-label">Stop Loss</div>
+            <div class="tbi-val" id="tb-sl" style="color:var(--put)">—</div>
+          </div>
+          <div class="trade-box-item">
+            <div class="tbi-label">Target</div>
+            <div class="tbi-val" id="tb-tgt" style="color:var(--call)">—</div>
+          </div>
         </div>
+
         <div class="reasons" id="reasonsList"></div>
       </div>
     </div>
   </div>
 
-  <!-- SIGNAL LOG -->
   <div class="card">
     <div class="card-title"><div class="dot green"></div>Signal Log · 90%+ Alerts</div>
     <div id="alertLog"><div class="empty-log">No high-confidence signals yet</div></div>
   </div>
 
-  <div class="footer">BankNifty Signal V3 · NSE Free Data · V2.6 Logic · 9:07 AM pre-open · Monthly 3 PM · Weekly 2 PM</div>
+  <div class="footer">BankNifty Signal V3.0 · V2.6 Logic + Kite API · Data from 9:07 AM · Signals 9:30–11:30 IST (primary) · Monthly closes 3 PM · Weekly closes 2 PM</div>
 </div>
 
-<!-- POPUP -->
 <div id="signalPopup">
   <button class="popup-close" onclick="closePopup()">✕</button>
   <div class="popup-eyebrow">High Confidence Signal</div>
@@ -370,42 +688,60 @@ input:focus, select:focus { border-color: var(--call); }
 </div>
 
 <script>
-// ── STATE ──────────────────────────────────────────────
 const S = {
+  token: null,
   connected: false,
+  ws: null,
   pollTimer: null,
-  optTimer: null,
   bnLTP: null,
-  bnPrevClose: null,
-  callOI: null, putOI: null,
-  callIV: null, putIV: null,
+  vwapCumPV: 0,
+  vwapCumVol: 0,
+  vwapVal: null,
+  callOI: null,
+  putOI: null,
+  callIV: null,
+  putIV: null,
   ivBaseline: null,
+  bnOpen: null,
+  lastSignalFired: null,
   tradedToday: null,
   tradeResult: null,
-  expiryType: 'monthly',
-  newsChecks: { oil:false, war:false, crash:false },
-  lastSignalKey: null,
+  newsChecks: { oil: false, war: false, crash: false },
+  logItems: [],
   notifGranted: false,
 };
 
-// ── CLOCK + TIME GATE ──────────────────────────────────
+const TOKENS = { BN_INDEX: 260105 };
+
+// ── UPDATED API KEYS ──
+const KITE_API_KEY    = '6rsvfsxez9gb3rw3';
+const KITE_API_SECRET = 'k3ok1mxxost84amx6bbhv0h1g9ou40c1';
+
 function getIST() {
   const now = new Date();
-  return new Date(now.getTime() + now.getTimezoneOffset()*60000 + 5.5*3600000);
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  return new Date(utc + 5.5 * 3600000);
 }
-function getISTMinutes() { const d=getIST(); return d.getHours()*60+d.getMinutes(); }
-function getISTTimeStr() { return getIST().toTimeString().slice(0,8); }
+function getISTMinutes() {
+  const d = getIST();
+  return d.getHours() * 60 + d.getMinutes();
+}
+function getISTTimeStr() {
+  const d = getIST();
+  return d.toTimeString().slice(0,8);
+}
 
 function getTimeStatus() {
   const t = getISTMinutes();
-  const isMonthly = S.expiryType === 'monthly';
+  const expiry = document.getElementById('expiryType').value;
+  const isMonthly = expiry === 'monthly';
   if (t < 547) return { allowed:false, zone:'blocked', reason:'⛔ PRE-OPEN NOT YET', detail:`${547-t} min until 9:07 AM IST`, minStrength:999 };
-  if (t < 570) return { allowed:false, zone:'preopen', reason:'👁 PRE-OPEN 9:07–9:30 AM', detail:`${570-t} min until primary · data live, signals blocked`, minStrength:999 };
-  if (t <= 690) return { allowed:true, zone:'primary', reason:'✅ PRIMARY 9:30–11:30 AM', detail:`${690-t} min remaining · threshold 65%+`, minStrength:65 };
+  if (t < 570) return { allowed:false, zone:'preopen', reason:'👁 PRE-OPEN OBSERVATION  9:07–9:30 AM', detail:`${570-t} min until primary window · data live, signals blocked`, minStrength:999 };
+  if (t <= 690) return { allowed:true, zone:'primary', reason:'✅ PRIMARY WINDOW  9:30–11:30 AM', detail:`${690-t} min remaining · threshold 65%+`, minStrength:65 };
   const extClose = isMonthly ? 900 : 840;
   const extLabel = isMonthly ? '3:00 PM' : '2:00 PM';
-  const extMin = isMonthly ? 70 : 75;
-  if (t <= extClose) return { allowed:true, zone:'extended', reason:`🟡 EXTENDED 11:30–${extLabel}`, detail:`${extClose-t} min remaining · threshold ${extMin}%+`, minStrength:extMin };
+  const extMin   = isMonthly ? 70 : 75;
+  if (t <= extClose) return { allowed:true, zone:'extended', reason:`🟡 EXTENDED  11:30 AM–${extLabel}`, detail:`${extClose-t} min remaining · threshold ${extMin}%+`, minStrength:extMin };
   return { allowed:false, zone:'blocked', reason:`⛔ CLOSED after ${extLabel}`, detail:'Hard block', minStrength:999 };
 }
 
@@ -420,82 +756,188 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// ── NSE DATA FETCH (via Netlify proxy) ─────────────────
-async function fetchNSEQuote() {
-  try {
-    const res = await fetch('/.netlify/functions/nse?path=/api/quote-derivative?symbol=BANKNIFTY');
-    if (!res.ok) return null;
-    return await res.json();
-  } catch(e) { return null; }
+function kiteLogin() {
+  window.open(`https://kite.trade/connect/login?api_key=${KITE_API_KEY}&v=3`, '_blank');
 }
 
-async function fetchNSEIndex() {
+function extractAndGenerate() {
+  const val = document.getElementById('redirectUrl').value.trim();
+  if (!val) { showConnectMsg('Paste your access token first', 'err'); return; }
+  S.token = val;
+  kiteConnect();
+}
+
+async function kiteConnect() {
+  if (!S.token) { showConnectMsg('Paste token first', 'err'); return; }
+
+  if ('Notification' in window && Notification.permission !== 'granted') {
+    await Notification.requestPermission().then(p => S.notifGranted = p === 'granted');
+  } else {
+    S.notifGranted = Notification.permission === 'granted';
+  }
+
+  showConnectMsg('Testing token...', 'ok');
+
   try {
-    const res = await fetch('/.netlify/functions/nse?path=/api/allIndices');
-    if (!res.ok) return null;
-    return await res.json();
-  } catch(e) { return null; }
+    const res = await fetch(
+      `/.netlify/functions/quote?symbols=NSE:NIFTY BANK&token=${S.token}&api_key=${KITE_API_KEY}`
+    );
+    const json = await res.json();
+
+    if (json.status !== 'success') {
+      showConnectMsg('❌ Token invalid: ' + (json.message || 'Try a fresh token'), 'err');
+      return;
+    }
+
+    S.connected = true;
+    setLiveStatus('active');
+    document.getElementById('step2').style.display = 'none';
+    document.getElementById('connectedRow').style.display = 'flex';
+    document.getElementById('tokenShort').textContent = `token: ${S.token.slice(0,8)}••••`;
+    showConnectMsg('✓ Connected — polling every 5s', 'ok');
+
+    const bnData = json.data['NSE:NIFTY BANK'];
+    if (bnData) onBNQuote(bnData);
+
+    S.pollTimer    = setInterval(pollBNPrice, 5000);
+    S.optionsTimer = setInterval(pollOptionsData, 30000);
+    setTimeout(pollOptionsData, 2000);
+
+  } catch(e) {
+    showConnectMsg('❌ Error: ' + e.message, 'err');
+  }
 }
 
 async function pollBNPrice() {
-  if (!S.connected) return;
+  if (!S.token || !S.connected) return;
   try {
-    const data = await fetchNSEIndex();
-    if (!data) return;
-    const bn = data.data?.find(d => d.index === 'NIFTY BANK');
-    if (!bn) return;
-    const ltp = bn.last;
-    const prevClose = bn.previousClose;
-    S.bnPrevClose = prevClose;
-    S.bnLTP = ltp;
-    const dir = ltp > prevClose ? 'bull' : 'bear';
-    const chg = ((ltp - prevClose) / prevClose * 100).toFixed(2);
-    setMetric('bn', ltp.toFixed(0), `${chg}% vs prev close`, dir, true);
-    setMetric('vwap', prevClose.toFixed(0), 'prev close', ltp > prevClose ? 'bull' : 'bear', true);
-    if (S.connected) autoAnalyze();
+    const res = await fetch(
+      `/.netlify/functions/quote?symbols=NSE:NIFTY BANK&token=${S.token}&api_key=${KITE_API_KEY}`
+    );
+    const json = await res.json();
+    if (json.status !== 'success') return;
+    const bnData = json.data['NSE:NIFTY BANK'];
+    if (bnData) onBNQuote(bnData);
   } catch(e) {}
 }
 
+function onBNQuote(data) {
+  const ltp  = data.last_price || 0;
+  const open = data.ohlc?.open || ltp;
+  const vol  = data.volume_traded || 1;
+
+  if (!S.bnOpen) S.bnOpen = open;
+  S.vwapCumPV  += ltp * vol;
+  S.vwapCumVol += vol;
+  S.vwapVal = S.vwapCumVol > 0 ? S.vwapCumPV / S.vwapCumVol : ltp;
+
+  const prev = S.bnLTP;
+  S.bnLTP = ltp;
+
+  const dir    = prev ? (ltp > prev ? 'bull' : ltp < prev ? 'bear' : '') : '';
+  const change = S.bnOpen ? ((ltp - S.bnOpen) / S.bnOpen * 100).toFixed(2) : '—';
+  const vsVwap = S.vwapVal ? (ltp > S.vwapVal ? '↑ above VWAP' : '↓ below VWAP') : '—';
+
+  setMetric('bn',   ltp.toFixed(0), `${change}% from open · ${vsVwap}`, dir, true);
+  setMetric('vwap', S.vwapVal.toFixed(0), `rolling intraday`, ltp > S.vwapVal ? 'bull' : 'bear', true);
+
+  if (S.connected) autoAnalyze();
+}
+
+function kiteDisconnect() {
+  if (S.pollTimer)    { clearInterval(S.pollTimer);    S.pollTimer = null; }
+  if (S.optionsTimer) { clearInterval(S.optionsTimer); S.optionsTimer = null; }
+  S.connected = false;
+  setLiveStatus('disconnected');
+  document.getElementById('connectedRow').style.display = 'none';
+  document.getElementById('step2').style.display = 'block';
+  showConnectMsg('Disconnected', 'err');
+}
+
+function connectWebSocket() {}
+function parseTickBinary() {}
+function onBNTick() {}
+
 async function pollOptionsData() {
-  if (!S.connected || !S.bnLTP) return;
+  if (!S.token || !S.bnLTP) return;
   try {
-    const data = await fetchNSEQuote();
-    if (!data || !data.filtered) return;
-
     const atm = Math.round(S.bnLTP / 100) * 100;
-    const records = data.filtered.data || [];
+    const expiry = document.getElementById('expiryType').value;
+    const expiryDate = getExpiryDate(expiry);
 
-    let ceOI = 0, peOI = 0, ceIV = 0, peIV = 0, found = false;
-    records.forEach(r => {
-      if (r.strikePrice === atm) {
-        ceOI = r.CE?.openInterest || 0;
-        peOI = r.PE?.openInterest || 0;
-        ceIV = r.CE?.impliedVolatility || 0;
-        peIV = r.PE?.impliedVolatility || 0;
-        found = true;
-      }
-    });
+    const ceSymbol = `NFO:BANKNIFTY${expiryDate}${atm}CE`;
+    const peSymbol = `NFO:BANKNIFTY${expiryDate}${atm}PE`;
 
-    if (!found) return;
+    const res = await fetch(
+      `/.netlify/functions/quote?symbols=${encodeURIComponent(ceSymbol)},${encodeURIComponent(peSymbol)}&token=${S.token}&api_key=${KITE_API_KEY}`
+    );
+    const json = await res.json();
+    if (json.status !== 'success') return;
 
-    if (!S.ivBaseline) S.ivBaseline = { call: ceIV, put: peIV };
-    const callIVChg = ceIV - S.ivBaseline.call;
-    const putIVChg  = peIV - S.ivBaseline.put;
+    const ceData = json.data[ceSymbol];
+    const peData = json.data[peSymbol];
+    if (!ceData || !peData) return;
 
-    S.callOI = ceOI; S.putOI = peOI;
+    const callOI  = ceData.oi || 0;
+    const putOI   = peData.oi || 0;
+    const callIVnow = ceData.implied_volatility || 0;
+    const putIVnow  = peData.implied_volatility || 0;
+
+    if (!S.ivBaseline) S.ivBaseline = { call: callIVnow, put: putIVnow };
+    const callIVChg = callIVnow - S.ivBaseline.call;
+    const putIVChg  = putIVnow  - S.ivBaseline.put;
+
+    S.callOI = callOI; S.putOI = putOI;
     S.callIV = callIVChg; S.putIV = putIVChg;
 
-    const pcr = ceOI > 0 ? (peOI / ceOI).toFixed(2) : '—';
+    const pcr = putOI > 0 && callOI > 0 ? (putOI / callOI).toFixed(2) : '—';
     const pcrDir = parseFloat(pcr) > 1.3 ? 'bull' : parseFloat(pcr) < 0.7 ? 'bear' : '';
-    setMetric('pcr', pcr, `CE:${fmtLakh(ceOI)} PE:${fmtLakh(peOI)}`, pcrDir, true);
+    setMetric('pcr', pcr, `CE OI: ${fmtLakh(callOI)} · PE OI: ${fmtLakh(putOI)}`, pcrDir, true);
 
-    const ivDir = callIVChg > putIVChg ? 'bull' : 'bear';
-    setMetric('iv', ceIV.toFixed(1) + '%', `ATM call IV`, ivDir, true);
+    const ivDir = callIVChg > putIVChg ? 'bull' : callIVChg < putIVChg ? 'bear' : '';
+    setMetric('iv', `${callIVChg >= 0 ? '+' : ''}${callIVChg.toFixed(1)}/${putIVChg >= 0 ? '+' : ''}${putIVChg.toFixed(1)}`, `call/put IV Δ`, ivDir, true);
 
-    const oiDiff = ceOI - peOI;
-    setMetric('oi', oiDiff > 0 ? `CE+${fmtLakh(Math.abs(oiDiff))}` : `PE+${fmtLakh(Math.abs(oiDiff))}`, 'OI buildup', oiDiff > 0 ? 'bear' : 'bull', true);
+    const oiDiff = callOI - putOI;
+    const oiDir  = oiDiff > 0 ? 'bear' : 'bull';
+    setMetric('oi', oiDiff > 0 ? `CE+${fmtLakh(Math.abs(oiDiff))}` : `PE+${fmtLakh(Math.abs(oiDiff))}`, `OI buildup bias`, oiDir, true);
 
-  } catch(e) {}
+  } catch(e) {
+    console.warn('Options fetch failed', e);
+  }
+}
+
+function getExpiryDate(type) {
+  const now = getIST();
+  const day = now.getDay();
+  let daysToThursday = (4 - day + 7) % 7;
+  if (daysToThursday === 0 && now.getHours() >= 15) daysToThursday = 7;
+  const thu = new Date(now);
+  thu.setDate(now.getDate() + daysToThursday);
+
+  if (type === 'weekly') {
+    const yy = String(thu.getFullYear()).slice(2);
+    const dd = String(thu.getDate()).padStart(2, '0');
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    const mm = thu.getMonth();
+    const lastThu = getLastThursday(thu.getFullYear(), thu.getMonth());
+    if (thu.getDate() === lastThu) return `${yy}${months[mm]}`;
+    return `${yy}${mm+1 < 10 ? '0'+(mm+1) : mm+1}${dd}`;
+  } else {
+    let yr = now.getFullYear(), mo = now.getMonth();
+    let lastThu = getLastThursday(yr, mo);
+    if (now.getDate() > lastThu || (now.getDate() === lastThu && now.getHours() >= 15)) {
+      mo++; if (mo > 11) { mo = 0; yr++; }
+      lastThu = getLastThursday(yr, mo);
+    }
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    return `${String(yr).slice(2)}${months[mo]}`;
+  }
+}
+
+function getLastThursday(year, month) {
+  const d = new Date(year, month + 1, 0);
+  while (d.getDay() !== 4) d.setDate(d.getDate() - 1);
+  return d.getDate();
 }
 
 function fmtLakh(n) {
@@ -504,59 +946,21 @@ function fmtLakh(n) {
   return n;
 }
 
-// ── CONNECT / DISCONNECT ───────────────────────────────
-async function startFeed() {
-  if ('Notification' in window && Notification.permission !== 'granted') {
-    Notification.requestPermission().then(p => S.notifGranted = p === 'granted');
-  } else {
-    S.notifGranted = Notification.permission === 'granted';
-  }
-
-  showMsg('Connecting to NSE...', 'ok');
-  S.connected = true;
-
-  await pollBNPrice();
-  await pollOptionsData();
-
-  if (S.bnLTP) {
-    setLiveStatus('active');
-    showMsg('✓ Connected — NSE data live', 'ok');
-    document.getElementById('connectBtn').style.display = 'none';
-    document.getElementById('stopBtn').style.display = '';
-  } else {
-    showMsg('⚠ NSE data unavailable — market may be closed. Data will load at market open.', 'ok');
-    setLiveStatus('active');
-    document.getElementById('connectBtn').style.display = 'none';
-    document.getElementById('stopBtn').style.display = '';
-  }
-
-  S.pollTimer = setInterval(pollBNPrice, 10000);
-  S.optTimer  = setInterval(pollOptionsData, 30000);
-}
-
-function stopFeed() {
-  if (S.pollTimer) clearInterval(S.pollTimer);
-  if (S.optTimer)  clearInterval(S.optTimer);
-  S.connected = false;
-  setLiveStatus('disconnected');
-  document.getElementById('connectBtn').style.display = '';
-  document.getElementById('stopBtn').style.display = 'none';
-  showMsg('Stopped', 'err');
-}
-
-// ── SIGNAL ENGINE (V2.6 logic) ─────────────────────────
 function autoAnalyze() {
-  if (S._lastAuto && Date.now() - S._lastAuto < 5000) return;
-  S._lastAuto = Date.now();
+  if (S._lastAutoRun && Date.now() - S._lastAutoRun < 5000) return;
+  S._lastAutoRun = Date.now();
   analyzeSignal(true);
 }
 
 function analyzeSignal(silent = false) {
   const ts = getTimeStatus();
-  if (!ts.allowed) { renderBlocked(ts); return; }
+  if (!ts.allowed) {
+    renderBlocked(ts);
+    return;
+  }
 
-  const price    = S.bnLTP || NaN;
-  const prevClose= S.bnPrevClose || NaN;
+  const price    = S.bnLTP    || parseFloat(document.getElementById('prevHigh').value) || NaN;
+  const vwap     = S.vwapVal  || NaN;
   const prevHigh = parseFloat(document.getElementById('prevHigh').value);
   const prevLow  = parseFloat(document.getElementById('prevLow').value);
   const callOI   = S.callOI != null ? S.callOI : NaN;
@@ -569,19 +973,16 @@ function analyzeSignal(silent = false) {
 
   let bull = 0, bear = 0, reasons = [];
 
-  // 1. Price vs prev close (replaces VWAP)
-  if (!isNaN(price) && !isNaN(prevClose)) {
-    if (price > prevClose) { bull += 2; reasons.push({ type:'bull', text:`Price (${price.toFixed(0)}) above prev close (${prevClose.toFixed(0)}) — bullish bias`, pts:2, factor:0 }); }
-    else { bear += 2; reasons.push({ type:'bear', text:`Price (${price.toFixed(0)}) below prev close (${prevClose.toFixed(0)}) — bearish bias`, pts:2, factor:0 }); }
+  if (!isNaN(price) && !isNaN(vwap)) {
+    if (price > vwap) { bull += 2; reasons.push({ type:'bull', text:`Price (${price.toFixed(0)}) above VWAP (${vwap.toFixed(0)}) — bullish bias`, pts:2, factor:0 }); }
+    else              { bear += 2; reasons.push({ type:'bear', text:`Price (${price.toFixed(0)}) below VWAP (${vwap.toFixed(0)}) — bearish bias`, pts:2, factor:0 }); }
   }
 
-  // 2. Prev High/Low breakout
   if (!isNaN(price) && !isNaN(prevHigh) && !isNaN(prevLow)) {
     if (price > prevHigh)     { bull += 3; reasons.push({ type:'bull', text:`Broke above prev high (${prevHigh}) — strong breakout`, pts:3, factor:1, hi:true }); }
     else if (price < prevLow) { bear += 3; reasons.push({ type:'bear', text:`Broke below prev low (${prevLow}) — strong breakdown`, pts:3, factor:1, hi:true }); }
   }
 
-  // 3. PCR
   if (!isNaN(callOI) && !isNaN(putOI) && callOI > 0) {
     const pcr = putOI / callOI;
     if (pcr > 1.3)      { bull += 2; reasons.push({ type:'bull', text:`PCR ${pcr.toFixed(2)} — high put OI, contrarian bullish`, pts:2, factor:2 }); }
@@ -589,16 +990,14 @@ function analyzeSignal(silent = false) {
     else                { reasons.push({ type:'neutral', text:`PCR ${pcr.toFixed(2)} — balanced, neutral`, pts:0, factor:2 }); }
   }
 
-  // 4. IV diff
   if (!isNaN(callIV) && !isNaN(putIV)) {
     const diff = Math.abs(callIV - putIV);
     if (diff > 2) {
-      if (callIV > putIV) { bull += 1; reasons.push({ type:'bull', text:`Call IV rising faster — bullish pressure`, pts:1, factor:3 }); }
-      else                { bear += 1; reasons.push({ type:'bear', text:`Put IV rising faster — bearish pressure`, pts:1, factor:3 }); }
-    } else { reasons.push({ type:'neutral', text:`IV balanced — neutral`, pts:0, factor:3 }); }
+      if (callIV > putIV) { bull += 1; reasons.push({ type:'bull', text:`Call IV rising faster (+${callIV.toFixed(1)}% vs Put +${putIV.toFixed(1)}%)`, pts:1, factor:3 }); }
+      else                { bear += 1; reasons.push({ type:'bear', text:`Put IV rising faster (+${putIV.toFixed(1)}% vs Call +${callIV.toFixed(1)}%)`, pts:1, factor:3 }); }
+    } else { reasons.push({ type:'neutral', text:`IV change balanced (C:${callIV.toFixed(1)}% P:${putIV.toFixed(1)}%) — neutral`, pts:0, factor:3 }); }
   }
 
-  // 5. GIFT Nifty
   if (!isNaN(giftNifty)) {
     if (giftNifty > 1)        { bull += 2; reasons.push({ type:'bull', text:`GIFT Nifty +${giftNifty.toFixed(2)}% — strong overnight buying`, pts:2, factor:4, hi:true }); }
     else if (giftNifty > 0.5) { bull += 1; reasons.push({ type:'bull', text:`GIFT Nifty +${giftNifty.toFixed(2)}% — moderate overnight strength`, pts:1, factor:4 }); }
@@ -607,31 +1006,29 @@ function analyzeSignal(silent = false) {
     else { reasons.push({ type:'neutral', text:`GIFT Nifty ${giftNifty >= 0?'+':''}${giftNifty.toFixed(2)}% — neutral`, pts:0, factor:4 }); }
   }
 
-  // 6. NASDAQ
   if (!isNaN(nasdaq)) {
-    if (nasdaq > 1)       { bull += 2; reasons.push({ type:'bull', text:`NASDAQ +${nasdaq.toFixed(2)}% — US strength`, pts:2, factor:4, hi:true }); }
-    else if (nasdaq < -1) { bear += 2; reasons.push({ type:'bear', text:`NASDAQ ${nasdaq.toFixed(2)}% — US weakness`, pts:2, factor:4, hi:true }); }
+    if (nasdaq > 1)       { bull += 2; reasons.push({ type:'bull', text:`NASDAQ +${nasdaq.toFixed(2)}% — US strength supports markets`, pts:2, factor:4, hi:true }); }
+    else if (nasdaq < -1) { bear += 2; reasons.push({ type:'bear', text:`NASDAQ ${nasdaq.toFixed(2)}% — US weakness impacts markets`, pts:2, factor:4, hi:true }); }
     else { reasons.push({ type:'neutral', text:`NASDAQ ${nasdaq >= 0?'+':''}${nasdaq.toFixed(2)}% — neutral`, pts:0, factor:4 }); }
   }
 
-  // 7. News
   let newsImpact = 0, newsTexts = [];
   if (S.newsChecks.oil)   { bear += 3; newsImpact += 3; newsTexts.push('Oil shock'); }
-  if (S.newsChecks.war)   { bear += 2; newsImpact += 2; newsTexts.push('Geopolitical'); }
+  if (S.newsChecks.war)   { bear += 2; newsImpact += 2; newsTexts.push('Geopolitical event'); }
   if (S.newsChecks.crash) { bear += 2; newsImpact += 2; newsTexts.push('Global crash'); }
   if (newsImpact > 0) reasons.push({ type:'bear', text:`⚠️ MAJOR NEWS: ${newsTexts.join(', ')}`, pts:newsImpact, factor:5, crit:true });
 
-  const total    = bull + bear;
-  const strength = total > 0 ? Math.round((Math.max(bull, bear) / total) * 100) : 0;
+  const total   = bull + bear;
+  const dominant = Math.max(bull, bear);
+  const strength = total > 0 ? Math.round((dominant / total) * 100) : 0;
 
   let signalType = 'STAY OUT';
   if (bull >= 5 && bull > bear) signalType = 'BUY CALL';
   if (bear >= 5 && bear > bull) signalType = 'BUY PUT';
 
-  // Override logic
   let override = null;
   if (ts.zone === 'extended' && signalType !== 'STAY OUT' && strength < ts.minStrength) {
-    override = { verdict:`STAY OUT — EXTENDED NEEDS ${ts.minStrength}%+`, reason:`Signal is ${strength}%. Extended window requires ${ts.minStrength}%+.`, color:'var(--warn)' };
+    override = { verdict:`STAY OUT — EXTENDED WINDOW NEEDS ${ts.minStrength}%+`, reason:`Signal is ${strength}%. Extended window requires ${ts.minStrength}%+.`, color:'var(--warn)' };
   }
   if (!override && S.tradedToday && signalType !== 'STAY OUT') {
     if (S.tradeResult === 'loss') {
@@ -639,21 +1036,21 @@ function analyzeSignal(silent = false) {
     } else if (S.tradeResult === 'profit') {
       const p = !isNaN(pnl) ? pnl : 0;
       if (p >= 3000 && strength < 90) override = { verdict:'STAY OUT', reason:`Booked ₹${p.toLocaleString()}. Signal ${strength}% below 90% re-entry threshold.`, color:'var(--warn)' };
-      else if (p >= 3000 && strength >= 90) override = { verdict:'PROCEED WITH CAUTION', reason:`Booked ₹${p.toLocaleString()}. Strong ${strength}% signal — tighter SL.`, color:'var(--warn)' };
+      else if (p >= 3000 && strength >= 90) override = { verdict:'PROCEED WITH CAUTION', reason:`Booked ₹${p.toLocaleString()}. Strong ${strength}% signal — use tighter SL.`, color:'var(--warn)' };
     }
   }
 
   const atm = !isNaN(price) ? Math.round(price / 100) * 100 : 0;
-  const strike = atm + (signalType === 'BUY CALL' ? 100 : -100);
-  const sl     = signalType === 'BUY CALL' ? Math.round(price - price * 0.005) : Math.round(price + price * 0.005);
-  const tgt    = signalType === 'BUY CALL' ? Math.round(price + price * 0.01)  : Math.round(price - price * 0.01);
+  const strike  = atm + (signalType === 'BUY CALL' ? 100 : -100);
+  const sl      = signalType === 'BUY CALL' ? Math.round(price - price * 0.005) : Math.round(price + price * 0.005);
+  const target  = signalType === 'BUY CALL' ? Math.round(price + price * 0.01)  : Math.round(price - price * 0.01);
 
-  renderSignal({ signalType, strength, bull, bear, total, reasons, override, strike, sl, tgt, ts });
+  renderSignal({ signalType, strength, bull, bear, total, reasons, override, strike, sl, target, ts, newsImpact });
 
   if (strength >= 90 && signalType !== 'STAY OUT' && !override?.verdict?.includes('STAY OUT')) {
     const key = `${signalType}-${Math.floor(Date.now()/30000)}`;
-    if (S.lastSignalKey !== key) {
-      S.lastSignalKey = key;
+    if (S.lastSignalFired !== key) {
+      S.lastSignalFired = key;
       fireAlert(signalType, strength, price, strike);
     }
   }
@@ -662,10 +1059,9 @@ function analyzeSignal(silent = false) {
 function renderBlocked(ts) {
   const out = document.getElementById('signalOutput');
   out.style.display = 'block';
-  const ob = document.getElementById('overrideBox');
-  ob.style.display = 'block';
-  ob.style.borderColor = ts.zone === 'preopen' ? 'var(--info)' : 'var(--put)';
-  document.getElementById('overrideVerdict').style.color = ts.zone === 'preopen' ? 'var(--info)' : 'var(--put)';
+  document.getElementById('overrideBox').style.display = 'block';
+  const isPreopen = ts.zone === 'preopen';
+  document.getElementById('overrideVerdict').style.color = isPreopen ? 'var(--info)' : 'var(--put)';
   document.getElementById('overrideVerdict').textContent = ts.reason;
   document.getElementById('overrideReason').textContent = ts.detail;
   document.getElementById('signalBlock').style.display = 'none';
@@ -682,8 +1078,10 @@ function renderSignal(r) {
     ob.style.borderColor = r.override.color;
     document.getElementById('overrideVerdict').style.color = r.override.color;
     document.getElementById('overrideVerdict').textContent = '🔒 ' + r.override.verdict;
-    document.getElementById('overrideReason').textContent = r.override.reason;
-  } else { ob.style.display = 'none'; }
+    document.getElementById('overrideReason').textContent  = r.override.reason;
+  } else {
+    ob.style.display = 'none';
+  }
 
   const circumference = 188.5;
   const offset = circumference - (r.strength / 100) * circumference;
@@ -702,21 +1100,26 @@ function renderSignal(r) {
 
   document.getElementById('signalPts').textContent = `Bull: ${r.bull}pts · Bear: ${r.bear}pts · Total: ${r.total}/20`;
 
-  const factorMax = [2,3,2,1,4,7];
-  const fb = [0,0,0,0,0,0], fr = [0,0,0,0,0,0];
+  const factorMax = [2, 3, 2, 1, 4, 7];
+  const factorBull = [0,0,0,0,0,0];
+  const factorBear = [0,0,0,0,0,0];
   r.reasons.forEach(re => {
     if (re.factor === undefined) return;
-    if (re.type === 'bull') fb[re.factor] += re.pts;
-    if (re.type === 'bear') fr[re.factor] += re.pts;
+    if (re.type === 'bull') factorBull[re.factor] += re.pts;
+    if (re.type === 'bear') factorBear[re.factor] += re.pts;
   });
+
   for (let i = 0; i < 6; i++) {
-    const dom = Math.max(fb[i], fr[i]);
-    const pct = factorMax[i] > 0 ? Math.round((dom / factorMax[i]) * 100) : 0;
-    const isBull = fb[i] >= fr[i];
-    document.getElementById(`bf${i}`).style.width = pct + '%';
-    document.getElementById(`bf${i}`).style.background = dom === 0 ? 'var(--muted)' : isBull ? 'var(--call)' : 'var(--put)';
-    document.getElementById(`fp${i}`).textContent = dom === 0 ? '—' : (isBull ? '+' : '-') + dom;
-    document.getElementById(`fp${i}`).style.color = dom === 0 ? 'var(--muted2)' : isBull ? 'var(--call)' : 'var(--put)';
+    const bul = factorBull[i], bea = factorBear[i], mx = factorMax[i];
+    const dominant = Math.max(bul, bea);
+    const pct = mx > 0 ? Math.round((dominant / mx) * 100) : 0;
+    const isBull = bul >= bea;
+    const bar = document.getElementById(`bf${i}`);
+    bar.style.width = pct + '%';
+    bar.style.background = dominant === 0 ? 'var(--muted)' : isBull ? 'var(--call)' : 'var(--put)';
+    const fp = document.getElementById(`fp${i}`);
+    fp.textContent = dominant === 0 ? '—' : (isBull ? '+' : '-') + dominant;
+    fp.style.color = dominant === 0 ? 'var(--muted2)' : isBull ? 'var(--call)' : 'var(--put)';
   }
 
   const tb = document.getElementById('tradeBox');
@@ -725,8 +1128,10 @@ function renderSignal(r) {
     document.getElementById('tb-strike').textContent = r.strike;
     document.getElementById('tb-strike').style.color = r.signalType === 'BUY CALL' ? 'var(--call)' : 'var(--put)';
     document.getElementById('tb-sl').textContent = r.sl;
-    document.getElementById('tb-tgt').textContent = r.tgt;
-  } else { tb.style.display = 'none'; }
+    document.getElementById('tb-tgt').textContent = r.target;
+  } else {
+    tb.style.display = 'none';
+  }
 
   const rl = document.getElementById('reasonsList');
   rl.innerHTML = '';
@@ -735,55 +1140,74 @@ function renderSignal(r) {
     const tcls = re.crit ? 'crit' : re.type;
     const ptsStr = re.pts > 0 ? `+${re.pts}` : (re.pts < 0 ? re.pts : '—');
     const ptsColor = re.type === 'bull' ? 'var(--call)' : re.type === 'bear' ? 'var(--put)' : 'var(--muted2)';
-    rl.innerHTML += `<div class="reason-row ${cls}"><span class="reason-text ${tcls}">${re.type==='bull'?'↑ ':re.type==='bear'?'↓ ':''}${re.text}</span><span class="reason-pts" style="color:${ptsColor}">${ptsStr}</span></div>`;
+    rl.innerHTML += `<div class="reason-row ${cls}">
+      <span class="reason-text ${tcls}">${re.type === 'bull' ? '↑ ' : re.type === 'bear' ? '↓ ' : ''}${re.text}</span>
+      <span class="reason-pts" style="color:${ptsColor}">${ptsStr}</span>
+    </div>`;
   });
 }
 
-// ── ALERTS ─────────────────────────────────────────────
 function fireAlert(signalType, strength, price, strike) {
   const isCall = signalType === 'BUY CALL';
   const timeStr = getISTTimeStr();
+
   const popup = document.getElementById('signalPopup');
   popup.className = `show ${isCall ? 'call-popup' : 'put-popup'}`;
   const sigEl = document.getElementById('popupSignal');
   sigEl.textContent = isCall ? 'BUY CALL' : 'BUY PUT';
   sigEl.className = `popup-signal ${isCall ? 'call' : 'put'}`;
-  document.getElementById('popupMeta').innerHTML = `<span style="font-size:13px;font-weight:700;color:${isCall?'var(--call)':'var(--put)'}">${strength}% confidence</span><br>BN Spot: ${price?price.toFixed(0):'—'} · Strike: ${strike}<br>Time: ${timeStr} IST`;
+  document.getElementById('popupMeta').innerHTML =
+    `<span class="popup-pct" style="color:${isCall?'var(--call)':'var(--put)'}">${strength}% confidence</span><br>
+    BN Spot: ${price ? price.toFixed(0) : '—'} · Strike: ${strike}<br>
+    Time: ${timeStr} IST`;
+
   setTimeout(closePopup, 15000);
 
   if (S.notifGranted) {
     new Notification(`⚡ ${signalType} — ${strength}% Confidence`, {
-      body: `BankNifty ${price?price.toFixed(0):''} · Strike ${strike} · ${timeStr} IST`,
-      tag: 'bn-signal', requireInteraction: true,
+      body: `BankNifty ${price ? price.toFixed(0) : ''} · Strike ${strike} · ${timeStr} IST`,
+      icon: 'https://cdn-icons-png.flaticon.com/512/2910/2910756.png',
+      tag: 'bn-signal',
+      requireInteraction: true,
     });
   }
 
+  addToLog(signalType, strength, price, strike, timeStr);
+
   try {
-    const ctx = new (window.AudioContext||window.webkitAudioContext)();
-    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.value = isCall ? 880 : 440; osc.type = 'sine';
+    osc.frequency.value = isCall ? 880 : 440;
+    osc.type = 'sine';
     gain.gain.setValueAtTime(0.3, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
-    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.8);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.8);
   } catch(e) {}
-
-  addToLog(signalType, strength, price, strike, timeStr);
 }
 
-function closePopup() { document.getElementById('signalPopup').classList.remove('show'); }
+function closePopup() {
+  document.getElementById('signalPopup').classList.remove('show');
+}
 
 function addToLog(signalType, strength, price, strike, timeStr) {
   const log = document.getElementById('alertLog');
   const isCall = signalType === 'BUY CALL';
   const item = document.createElement('div');
-  item.className = `log-item ${isCall?'call':'put'}`;
-  item.innerHTML = `<span class="log-badge ${isCall?'call':'put'}">${signalType}</span><div class="log-body"><div class="log-title">${strength}% · Strike ${strike}</div><div class="log-detail">BN ${price?price.toFixed(0):'—'} · ${timeStr} IST</div></div><span class="log-time">${timeStr}</span>`;
+  item.className = `log-item ${isCall ? 'call' : 'put'}`;
+  item.innerHTML = `
+    <span class="log-badge ${isCall?'call':'put'}">${signalType}</span>
+    <div class="log-body">
+      <div class="log-title">${strength}% confidence · Strike ${strike}</div>
+      <div class="log-detail">BN Spot ${price ? price.toFixed(0) : '—'} · ${timeStr} IST</div>
+    </div>
+    <span class="log-time">${timeStr}</span>`;
   if (log.querySelector('.empty-log')) log.innerHTML = '';
   log.insertBefore(item, log.firstChild);
 }
 
-// ── UI HELPERS ─────────────────────────────────────────
 function setMetric(id, val, sub, dir, live) {
   const card = document.getElementById(`m-${id}`);
   const vEl  = document.getElementById(`mv-${id}`);
@@ -805,10 +1229,10 @@ function setLiveStatus(status) {
   text.textContent = status === 'active' ? 'LIVE' : status === 'error' ? 'ERROR' : 'DISCONNECTED';
 }
 
-function showMsg(msg, type) {
+function showConnectMsg(msg, type) {
   const el = document.getElementById('connectMsg');
   el.textContent = msg;
-  el.className = type;
+  el.className = `msg ${type}`;
 }
 
 function setTraded(val) {
@@ -822,52 +1246,57 @@ function setResult(val) {
   document.getElementById('tb-profit').className = `toggle-btn ${val==='profit' ? 'active-green' : ''}`;
   document.getElementById('tb-loss').className   = `toggle-btn ${val==='loss'   ? 'active-red'  : ''}`;
 }
-function setExpiry(val) {
-  S.expiryType = val;
-  document.getElementById('exp-weekly').className  = `toggle-btn ${val==='weekly'  ? 'active-green' : ''}`;
-  document.getElementById('exp-monthly').className = `toggle-btn ${val==='monthly' ? 'active-green' : ''}`;
-}
+
 function toggleCheck(key) {
   S.newsChecks[key] = !S.newsChecks[key];
   const ci = document.getElementById(`ci-${key}`);
   const cb = document.getElementById(`cb-${key}`);
-  ci.classList.toggle('checked', S.newsChecks[key]);
-  cb.textContent = S.newsChecks[key] ? '✓' : '';
+  if (S.newsChecks[key]) {
+    ci.classList.add('checked');
+    cb.textContent = '✓';
+  } else {
+    ci.classList.remove('checked');
+    cb.textContent = '';
+  }
 }
 
-// ── SAVE / LOAD CONFIG ─────────────────────────────────
-function saveConfig() {
+function encodeConfig() {
   const ph = document.getElementById('prevHigh').value;
   const pl = document.getElementById('prevLow').value;
   const gn = document.getElementById('giftNifty').value;
   const nd = document.getElementById('nasdaqChange').value;
-  const code = `BN:${ph}|${pl}|${gn}|${nd}|${S.expiryType}`;
+  const ex = document.getElementById('expiryType').value;
+  return `BN:${ph}|${pl}|${gn}|${nd}|${ex}`;
+}
+function saveConfig() {
+  const code = encodeConfig();
+  const disp = document.getElementById('savedCodeDisplay');
   document.getElementById('savedCodeText').textContent = code;
-  document.getElementById('savedCodeDisplay').style.display = '';
-  showConfigMsg('✓ Code generated', 'var(--call)');
+  disp.style.display = '';
+  showConfigMsg('✓ Code generated — copy to notes', 'ok');
 }
 function copyCode() {
   const code = document.getElementById('savedCodeText').textContent;
-  navigator.clipboard?.writeText(code).then(() => showConfigMsg('✓ Copied!', 'var(--call)'));
+  navigator.clipboard?.writeText(code).then(() => showConfigMsg('✓ Copied!', 'ok'));
 }
 function loadConfig() {
   const raw = document.getElementById('configCode').value.trim();
-  if (!raw.startsWith('BN:')) { showConfigMsg('⚠ Invalid code', 'var(--put)'); return; }
+  if (!raw.startsWith('BN:')) { showConfigMsg('⚠ Invalid code', 'err'); return; }
   const p = raw.replace('BN:','').split('|');
-  if (p.length !== 5) { showConfigMsg('⚠ Invalid code', 'var(--put)'); return; }
+  if (p.length !== 5) { showConfigMsg('⚠ Invalid code', 'err'); return; }
   document.getElementById('prevHigh').value     = p[0];
   document.getElementById('prevLow').value      = p[1];
   document.getElementById('giftNifty').value    = p[2];
   document.getElementById('nasdaqChange').value = p[3];
-  setExpiry(p[4]);
-  document.getElementById('configCode').value = '';
+  document.getElementById('expiryType').value   = p[4];
+  document.getElementById('configCode').value   = '';
   document.getElementById('savedCodeDisplay').style.display = 'none';
-  showConfigMsg('✓ Values restored!', 'var(--call)');
+  showConfigMsg('✓ Values restored!', 'ok');
 }
-function showConfigMsg(msg, color) {
+function showConfigMsg(msg, type) {
   const el = document.getElementById('configMsg');
-  el.textContent = msg; el.style.color = color;
-  setTimeout(() => el.textContent = '', 4000);
+  el.textContent = msg; el.className = `msg ${type}`;
+  setTimeout(() => { el.textContent = ''; }, 4000);
 }
 </script>
 </body>
