@@ -4,11 +4,12 @@ exports.handler = async (event) => {
   const { symbols, token, api_key } = event.queryStringParameters || {};
   if (!token || !symbols) return { statusCode: 400, body: JSON.stringify({ error: 'Missing params' }) };
 
+  const symbolList = symbols.split(',').map(s => `i=${encodeURIComponent(s.trim())}`).join('&');
+
   return new Promise((resolve) => {
-    const path = `/quote?${symbols.split(',').map(s => `i=${encodeURIComponent(s)}`).join('&')}`;
     const req = https.request({
       hostname: 'api.kite.trade',
-      path,
+      path: `/quote?${symbolList}`,
       method: 'GET',
       headers: { 'X-Kite-Version': '3', 'Authorization': `token ${api_key}:${token}` }
     }, (res) => {
