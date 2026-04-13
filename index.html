@@ -836,8 +836,7 @@ async function kiteConnect() {
 
   try {
     const res = await fetch(
-      'https://api.kite.trade/quote?i=NSE%3ANIFTY+BANK',
-      { headers: { 'X-Kite-Version': '3', 'Authorization': `token ${KITE_API_KEY}:${S.token}` } }
+      `/.netlify/functions/quote?symbols=NSE:NIFTY BANK&token=${S.token}&api_key=${KITE_API_KEY}`
     );
     const json = await res.json();
 
@@ -869,8 +868,7 @@ async function pollBNPrice() {
   if (!S.token || !S.connected) return;
   try {
     const res = await fetch(
-      'https://api.kite.trade/quote?i=NSE%3ANIFTY+BANK',
-      { headers: { 'X-Kite-Version': '3', 'Authorization': `token ${KITE_API_KEY}:${S.token}` } }
+      `/.netlify/functions/quote?symbols=NSE:NIFTY BANK&token=${S.token}&api_key=${KITE_API_KEY}`
     );
     const json = await res.json();
     if (json.status !== 'success') return;
@@ -976,8 +974,7 @@ async function pollOptionsData() {
     const peSymbol = `NFO:BANKNIFTY${expiryDate}${atm}PE`;
 
     const res = await fetch(
-      `https://api.kite.trade/quote?i=${encodeURIComponent(ceSymbol)}&i=${encodeURIComponent(peSymbol)}`,
-      { headers: { 'X-Kite-Version': '3', 'Authorization': `token ${KITE_API_KEY}:${S.token}` } }
+      `/.netlify/functions/quote?symbols=${encodeURIComponent(ceSymbol)},${encodeURIComponent(peSymbol)}&token=${S.token}&api_key=${KITE_API_KEY}`
     );
     const json = await res.json();
     if (json.status !== 'success') return;
