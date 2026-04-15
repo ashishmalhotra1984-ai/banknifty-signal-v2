@@ -434,7 +434,7 @@ function onBNQuote(data) {
 
   S.vwapCumPV  += ltp * vol;
   S.vwapCumVol += vol;
-  S.vwapVal = S.vwapCumVol > 0 ? S.vwapCumPV / S.vwapCumVol : ltp;
+  S.vwapVal = data.average_price || (S.vwapCumVol > 0 ? S.vwapCumPV / S.vwapCumVol : ltp);
   const prev = S.bnLTP;
   S.bnLTP = ltp;
   const dir    = prev ? (ltp > prev ? 'bull' : ltp < prev ? 'bear' : '') : '';
