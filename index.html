@@ -390,10 +390,6 @@ async function kiteConnect() {
   if (!S.token) { showMsg('connectMsg', 'Paste token first', 'err'); return; }
   showMsg('connectMsg', 'Testing token...', 'ok');
   try {
-
-
-  showMsg('connectMsg', 'Testing token...', 'ok');
-  try {
     const res = await fetch(apiUrl(S.token));
     const json = await res.json();
     if (json.status !== 'success') {
@@ -415,6 +411,7 @@ async function kiteConnect() {
     showMsg('connectMsg', '❌ Network error: ' + e.message, 'err');
   }
 }
+
 
 async function pollBNPrice() {
   if (!S.token || !S.connected) return;
