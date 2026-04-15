@@ -416,13 +416,18 @@ async function kiteConnect() {
 async function pollBNPrice() {
   if (!S.token || !S.connected) return;
   try {
-    const res = await fetch(apiUrl(S.token));
+    const futSymbol = 'NFO:BANKNIFTY25APRFUT';
+    const url = `/api/quote?symbols=${encodeURIComponent('NSE:NIFTY BANK')},${encodeURIComponent(futSymbol)}&token=${encodeURIComponent(S.token)}&api_key=${KITE_API_KEY}`;
+    const res = await fetch(url);
     const json = await res.json();
     if (json.status !== 'success') return;
     const bnData = json.data['NSE:NIFTY BANK'];
     if (bnData) onBNQuote(bnData);
+    const futData = json.data[futSymbol];
+    if (futData) S.vwapVal = futData.average_price || futData.last_price;
   } catch(e) {}
 }
+
 
 function onBNQuote(data) {
   const ltp  = data.last_price || 0;
