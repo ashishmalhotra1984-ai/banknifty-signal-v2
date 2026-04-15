@@ -404,9 +404,7 @@ async function kiteConnect() {
     showMsg('connectMsg', '✓ Connected — polling every 5s', 'ok');
     const bnData = json.data['NSE:NIFTY BANK'];
     if (bnData) onBNQuote(bnData);
-    S.pollTimer    = setInterval(pollBNPrice, 5000);
-    S.optionsTimer = setInterval(pollOptionsData, 30000);
-    setTimeout(pollOptionsData, 2000);
+    fetchPrevDayLevels();
   } catch(e) {
     showMsg('connectMsg', '❌ Network error: ' + e.message, 'err');
   }
