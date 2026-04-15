@@ -378,11 +378,13 @@ function kiteLogin() {
 }
 
 function extractAndGenerate() {
-  const val = document.getElementById('redirectUrl').value.trim();
+  const el = document.getElementById('redirectUrl');
+  const val = (el.value || el.defaultValue || '').trim();
   if (!val) { showMsg('connectMsg', 'Paste your access token first', 'err'); return; }
   S.token = val;
   kiteConnect();
 }
+
 
 async function kiteConnect() {
   if (!S.token) { showMsg('connectMsg', 'Paste token first', 'err'); return; }
