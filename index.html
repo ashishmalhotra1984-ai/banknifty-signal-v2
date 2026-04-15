@@ -340,7 +340,12 @@ const S = {
 const KITE_API_KEY = '6rsvfsxez9gb3rw3';
 
 function apiUrl(token) {
-  return `/api/quote?symbols=${encodeURIComponent('NSE:NIFTY BANK')}&token=${encodeURIComponent(token)}&api_key=${KITE_API_KEY}`;
+  const params = new URLSearchParams({
+    symbols: 'NSE:NIFTY BANK',
+    token: token,
+    api_key: KITE_API_KEY
+  });
+  return `/api/quote?${params.toString()}`;
 }
 
 
