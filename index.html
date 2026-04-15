@@ -422,7 +422,32 @@ async function pollBNPrice() {
     const json = await res.json();
     if (json.status !== 'success') return;
     const bnData = json.data['NSE:NIFTY BANK'];
-    if (bnData) onBNQuote(bnData);
+       if (bnData) onBNQuote(bnData);
+    fetchPrevDayLevels();
+    S.pollTimer    = setInterval(pollBNPrice, 5000);
+    S.optionsTimer = setInterval(pollOptionsData, 30000);
+    setTimeout(pollOptionsData, 2000);
+  } catch(e) {
+    showMsg('connectMsg', '❌ Network error: ' + e.message, 'err');
+  }
+}
+
+async function fetchPrevDayLevels() {
+  try {
+    const res = await fetch(`/api/history?token=${encodeURIComponent(S.token)}&api_key=${KITE_API_KEY}`);
+    const json = await res.json();
+    if (json.status !== 'success') return;
+    const candles = json.data?.candles;
+    if (!candles || candles.length < 2) return;
+    const prev = candles[candles.length - 2];
+    document.getElementById('prevHigh').value = prev[2];
+    document.getElementById('prevLow').value  = prev[3];
+  } catch(e) {
+    console.warn('History fetch failed', e);
+  }
+}
+
+
     const futData = json.data[futSymbol];
     if (futData) S.vwapVal = futData.average_price || futData.last_price;
   } catch(e) {}
