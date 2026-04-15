@@ -412,7 +412,6 @@ async function kiteConnect() {
   }
 }
 
-
 async function pollBNPrice() {
   if (!S.token || !S.connected) return;
   try {
@@ -422,12 +421,11 @@ async function pollBNPrice() {
     const json = await res.json();
     if (json.status !== 'success') return;
     const bnData = json.data['NSE:NIFTY BANK'];
-       if (bnData) onBNQuote(bnData);
-    fetchPrevDayLevels();
-    S.pollTimer    = setInterval(pollBNPrice, 5000);
-    S.optionsTimer = setInterval(pollOptionsData, 30000);
-    setTimeout(pollOptionsData, 2000);
-  } catch(e) {
+    if (bnData) onBNQuote(bnData);
+    const futData = json.data[futSymbol];
+    if (futData) S.vwapVal = futData.average_price || futData.last_price;
+  } catch(e) {}
+}
     showMsg('connectMsg', '❌ Network error: ' + e.message, 'err');
   }
 }
