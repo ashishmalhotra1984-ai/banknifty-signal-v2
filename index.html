@@ -429,6 +429,9 @@ function onBNQuote(data) {
   const open = data.ohlc?.open || ltp;
   const vol  = data.volume_traded || 1;
   if (!S.bnOpen) S.bnOpen = open;
+    if (data.ohlc?.high && !document.getElementById('prevHigh').value) document.getElementById('prevHigh').value = data.ohlc.high;
+  if (data.ohlc?.low  && !document.getElementById('prevLow').value)  document.getElementById('prevLow').value  = data.ohlc.low;
+
   S.vwapCumPV  += ltp * vol;
   S.vwapCumVol += vol;
   S.vwapVal = S.vwapCumVol > 0 ? S.vwapCumPV / S.vwapCumVol : ltp;
