@@ -386,9 +386,9 @@ function extractAndGenerate() {
 
 async function kiteConnect() {
   if (!S.token) { showMsg('connectMsg', 'Paste token first', 'err'); return; }
-  if ('Notification' in window && Notification.permission !== 'granted') {
-    await Notification.requestPermission().then(p => S.notifGranted = p === 'granted');
-  } else { S.notifGranted = Notification.permission === 'granted'; }
+  showMsg('connectMsg', 'Testing token...', 'ok');
+  try {
+
 
   showMsg('connectMsg', 'Testing token...', 'ok');
   try {
