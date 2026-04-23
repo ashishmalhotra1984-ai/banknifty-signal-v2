@@ -649,6 +649,7 @@ function fireAlert(signalType,strength,price,strike){
   document.getElementById('popupSignal').className=`popup-signal ${isCall?'call':'put'}`;
   document.getElementById('popupMeta').innerHTML=`<span class="popup-pct" style="color:${isCall?'var(--call)':'var(--put)'}">${strength}% confidence</span><br>BN Spot: ${price?price.toFixed(0):'—'} · Strike: ${strike}<br>Time: ${timeStr} IST`;
   setTimeout(closePopup,15000);
+  sendTelegramAlert(signalType, strength, price, strike); 
   if(S.notifGranted) new Notification(`⚡ ${signalType} — ${strength}% Confidence`,{body:`BankNifty ${price?price.toFixed(0):''} · Strike ${strike} · ${timeStr} IST`,tag:'bn-signal',requireInteraction:true});
   addToLog(signalType,strength,price,strike,timeStr);
   try{const ctx=new(window.AudioContext||window.webkitAudioContext)(),osc=ctx.createOscillator(),gain=ctx.createGain();osc.connect(gain);gain.connect(ctx.destination);osc.frequency.value=isCall?880:440;osc.type='sine';gain.gain.setValueAtTime(0.3,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.8);osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.8);}catch(e){}
