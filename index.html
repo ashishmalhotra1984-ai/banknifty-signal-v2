@@ -340,6 +340,23 @@ const S = {
 };
 
 const KITE_API_KEY = '6rsvfsxez9gb3rw3';
+  const TELEGRAM_BOT_TOKEN = '8619534566:AAEhOllituSQoemE078Y-Zfs0Jcvygh20nw';
+const TELEGRAM_CHAT_ID = '8645599141';
+
+async function sendTelegramAlert(signalType, strength, price, strike) {
+  const emoji = signalType === 'BUY CALL' ? '🟢' : '🔴';
+  const time = getISTTimeStr();
+  const msg = `${emoji} *${signalType}* — ${strength}% Confidence\n\nBN Spot: ${price ? price.toFixed(0) : '—'}\nStrike: ${strike}\nTime: ${time} IST\n\n_BankNifty Signal V3_`;
+  try {
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: msg, parse_mode: 'Markdown' })
+    });
+  } catch(e) { console.warn('Telegram alert failed', e); }
+}
+
+  
 
 function apiUrl(token) {
   const params = new URLSearchParams({
