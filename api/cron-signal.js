@@ -16,7 +16,7 @@ function getISTMinutes() {
 
 function isMarketHours() {
   const t = getISTMinutes();
-  return t >= 570 && t <= 690;
+  return t >= 570 && t <= 900;
 }
 
 async function getToken() {
@@ -24,19 +24,19 @@ async function getToken() {
 }
 
 async function fetchBNData(token) {
-  const url = `https://api.kite.trade/quote?i=NSE:NIFTY+BANK`;
+  const url = 'https://api.kite.trade/quote?i=NSE:NIFTY+BANK';
   const res = await fetch(url, {
     headers: {
       'X-Kite-Version': '3',
-      'Authorization': `token ${KITE_API_KEY}:${token}`
+      'Authorization': 'token ' + KITE_API_KEY + ':' + token
     }
   });
   const json = await res.json();
-  return json?.data?.['NSE:NIFTY BANK'];
+  return json && json.data && json.data['NSE:NIFTY BANK'];
 }
 
 async function sendTelegram(msg) {
-  await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+  await fetch('https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendMessage', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -74,22 +74,22 @@ module.exports = async function handler(req, res) {
     if (!bnData) return res.json({ status: 'no data' });
     const price = bnData.last_price;
     const vwap = bnData.average_price || price;
-    const prevHigh = bnData.ohlc?.high || price;
-    const prevLow = bnData.ohlc?.low || price;
+    const prevHigh = bnData.ohlc ? bnData.ohlc.high : price;
+    const prevLow = bnData.ohlc ? bnData.ohlc.low : price;
     const { bull, bear, total, strength, signal } = scoreSignal(price, vwap, prevHigh, prevLow);
     if (strength >= 90 && signal !== 'STAY OUT') {
       const atm = Math.round(price / 100) * 100;
       const strike = atm + (signal === 'BUY CALL' ? 100 : -100);
-      const key = `${signal}-${Math.floor(Date.now() / 300000)}`;
+      const key = signal + '-' + Math.floor(Date.now() / 300000);
       if (lastFired !== key) {
         lastFired = key;
         const emoji = signal === 'BUY CALL' ? '🟢' : '🔴';
         const time = getIST().toTimeString().slice(0, 8);
-        const msg = `${emoji} *${signal}* — ${strength}% Confidence | Score: ${total}/20\n\nBN Spot: ${price.toFixed(0)}\nStrike: ${strike}\nTime: ${time} IST\n\n_BankNifty Signal V3_`;
+        const msg = emoji + ' *' + signal + '* — ' + strength + '% Confidence | Score: ' + total + '/20\n\nBN Spot: ' + price.toFixed(0) + '\nStrike: ' + strike + '\nTime: ' + time + ' IST\n\n_BankNifty Signal V3_';
         await sendTelegram(msg);
       }
     }
-    return res.json({ status: 'ok', signal, strength, total, price });
+    return res.json({ status: 'ok', signal: signal, strength: strength, total: total, price: price });
   } catch (e) {
     return res.json({ status: 'error', message: e.message });
   }
