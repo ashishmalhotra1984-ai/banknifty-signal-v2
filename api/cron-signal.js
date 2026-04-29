@@ -61,7 +61,8 @@ function scoreSignal(price, vwap, prevHigh, prevLow) {
   return { bull, bear, total, strength, signal };
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
+
   if (!isMarketHours()) {
     return res.json({ status: 'outside market hours' });
   }
