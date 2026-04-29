@@ -541,16 +541,19 @@ function getExpiryDate(type) {
     if (thu.getDate() === getLastThursday(thu.getFullYear(), mm)) return `${yy}${months[mm]}`;
     return `${yy}${mm+1<10?'0'+(mm+1):mm+1}${dd}`;
   } else {
-    let yr = now.getFullYear(), mo = now.getMonth();
-    const lastThu = getLastThursday(yr, mo);
-    if (now.getDate() > lastThu || (now.getDate() === lastThu && now.getHours() >= 15)) {
-      mo++; if (mo > 11) { mo = 0; yr++; }
-    } else if (now.getDate() === lastThu && now.getHours() < 15) {
-      mo++; if (mo > 11) { mo = 0; yr++; }
-    }
-    return `${String(yr).slice(2)}${months[mo]}`;
+    const todayStr = now.toISOString().slice(0, 10);
+    if (todayStr <= '2026-04-28') return '26APR';
+    if (todayStr <= '2026-05-28') return '26MAY';
+    if (todayStr <= '2026-06-25') return '26JUN';
+    if (todayStr <= '2026-07-30') return '26JUL';
+    if (todayStr <= '2026-08-27') return '26AUG';
+    if (todayStr <= '2026-09-24') return '26SEP';
+    if (todayStr <= '2026-10-29') return '26OCT';
+    if (todayStr <= '2026-11-26') return '26NOV';
+    return '26DEC';
   }
 }
+
 
 function getLastThursday(year, month) {
   const d = new Date(year, month+1, 0);
