@@ -508,7 +508,7 @@ async function pollOptionsData() {
   if (!S.token || !S.bnLTP) return;
   try {
     const atm = Math.round(S.bnLTP / 100) * 100;
-    const expiryDate = getExpiryDate(document.getElementById('expiryType').value);
+    const expiryDate = document.getElementById('expiryType').value === 'monthly' ? '26MAY' : getExpiryDate('weekly');
     const ceSymbol = `NFO:BANKNIFTY${expiryDate}${atm}CE`;
     const peSymbol = `NFO:BANKNIFTY${expiryDate}${atm}PE`;
     const url = `/api/quote?symbols=${encodeURIComponent(ceSymbol)},${encodeURIComponent(peSymbol)}&token=${encodeURIComponent(S.token)}&api_key=${KITE_API_KEY}`;
