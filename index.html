@@ -279,6 +279,8 @@ input[type=“password”] { letter-spacing: 0.1em; }
   </div>
 
 <button class="btn btn-green" id="analyzeBtn" onclick="analyzeSignal()">→ ANALYZE SIGNAL</button>
+  
+
 
   <div id="signalOutput" style="display:none">
     <div id="overrideBox" class="override-box" style="display:none"><div class="override-verdict" id="overrideVerdict"></div><div class="override-reason" id="overrideReason"></div></div>
@@ -340,6 +342,23 @@ const S = {
 };
 
 const KITE_API_KEY = '6rsvfsxez9gb3rw3';
+  const TELEGRAM_BOT_TOKEN = '8619534566:AAEhOllituSQoemE078Y-Zfs0Jcvygh20nw';
+const TELEGRAM_CHAT_ID = '8645599141';
+
+async function sendTelegramAlert(signalType, strength, price, strike) {
+  const emoji = signalType === 'BUY CALL' ? '🟢' : '🔴';
+  const time = getISTTimeStr();
+  const msg = `${emoji} *${signalType}* — ${strength}% Confidence\n\nBN Spot: ${price ? price.toFixed(0) : '—'}\nStrike: ${strike}\nTime: ${time} IST\n\n_BankNifty Signal V3_`;
+  try {
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: msg, parse_mode: 'Markdown' })
+    });
+  } catch(e) { console.warn('Telegram alert failed', e); }
+}
+
+  
 
 function apiUrl(token) {
   const params = new URLSearchParams({
@@ -632,6 +651,7 @@ function fireAlert(signalType,strength,price,strike){
   document.getElementById('popupSignal').className=`popup-signal ${isCall?'call':'put'}`;
   document.getElementById('popupMeta').innerHTML=`<span class="popup-pct" style="color:${isCall?'var(--call)':'var(--put)'}">${strength}% confidence</span><br>BN Spot: ${price?price.toFixed(0):'—'} · Strike: ${strike}<br>Time: ${timeStr} IST`;
   setTimeout(closePopup,15000);
+  sendTelegramAlert(signalType, strength, price, strike); 
   if(S.notifGranted) new Notification(`⚡ ${signalType} — ${strength}% Confidence`,{body:`BankNifty ${price?price.toFixed(0):''} · Strike ${strike} · ${timeStr} IST`,tag:'bn-signal',requireInteraction:true});
   addToLog(signalType,strength,price,strike,timeStr);
   try{const ctx=new(window.AudioContext||window.webkitAudioContext)(),osc=ctx.createOscillator(),gain=ctx.createGain();osc.connect(gain);gain.connect(ctx.destination);osc.frequency.value=isCall?880:440;osc.type='sine';gain.gain.setValueAtTime(0.3,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.8);osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.8);}catch(e){}

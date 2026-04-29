@@ -1,0 +1,96 @@
+const KITE_API_KEY = process.env.KITE_API_KEY;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+
+let lastFired = null;
+
+function getIST() {
+  const now = new Date();
+  return new Date(now.getTime() + 5.5 * 3600000);
+}
+
+function getISTMinutes() {
+  const d = getIST();
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+function isMarketHours() {
+  const t = getISTMinutes();
+  return t >= 570 && t <= 690;
+}
+
+async function getToken() {
+  return process.env.KITE_ACCESS_TOKEN;
+}
+
+async function fetchBNData(token) {
+  const url = `https://api.kite.trade/quote?i=NSE:NIFTY+BANK`;
+  const res = await fetch(url, {
+    headers: {
+      'X-Kite-Version': '3',
+      'Authorization': `token ${KITE_API_KEY}:${token}`
+    }
+  });
+  const json = await res.json();
+  return json?.data?.['NSE:NIFTY BANK'];
+}
+
+async function sendTelegram(msg) {
+  await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: TELEGRAM_CHAT_ID,
+      text: msg,
+      parse_mode: 'Markdown'
+    })
+  });
+}
+
+function scoreSignal(price, vwap, prevHigh, prevLow) {
+  let bull = 0, bear = 0;
+  if (price > vwap) bull += 2; else bear += 2;
+  if (price > prevHigh) bull += 3;
+  else if (price < prevLow) bear += 3;
+  const total = bull + bear;
+  const dominant = Math.max(bull, bear);
+  const strength = total > 0 ? Math.round((dominant / total) * 100) : 0;
+  let signal = 'STAY OUT';
+  if (bull >= 5 && bull > bear) signal = 'BUY CALL';
+  if (bear >= 5 && bear > bull) signal = 'BUY PUT';
+  return { bull, bear, total, strength, signal };
+}
+
+export default async function handler(req, res) {
+  if (!isMarketHours()) {
+    return res.json({ status: 'outside market hours' });
+  }
+  const token = await getToken();
+  if (!token) {
+    return res.json({ status: 'no token' });
+  }
+  try {
+    const bnData = await fetchBNData(token);
+    if (!bnData) return res.json({ status: 'no data' });
+    const price = bnData.last_price;
+    const vwap = bnData.average_price || price;
+    const prevHigh = bnData.ohlc?.high || price;
+    const prevLow = bnData.ohlc?.low || price;
+    const { bull, bear, total, strength, signal } = scoreSignal(price, vwap, prevHigh, prevLow);
+    if (strength >= 90 && signal !== 'STAY OUT') {
+      const atm = Math.round(price / 100) * 100;
+      const strike = atm + (signal === 'BUY CALL' ? 100 : -100);
+      const key = `${signal}-${Math.floor(Date.now() / 300000)}`;
+      if (lastFired !== key) {
+        lastFired = key;
+        const emoji = signal === 'BUY CALL' ? '🟢' : '🔴';
+        const time = getIST().toTimeString().slice(0, 8);
+        const msg = `${emoji} *${signal}* — ${strength}% Confidence | Score: ${total}/20\n\nBN Spot: ${price.toFixed(0)}\nStrike: ${strike}\nTime: ${time} IST\n\n_BankNifty Signal V3_`;
+        await sendTelegram(msg);
+      }
+    }
+    return res.json({ status: 'ok', signal, strength, total, price });
+  } catch (e) {
+    return res.json({ status: 'error', message: e.message });
+  }
+}
