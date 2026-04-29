@@ -16,7 +16,7 @@ function getISTMinutes() {
 
 function isMarketHours() {
   const t = getISTMinutes();
-  return t >= 570 && t <= 690;
+  return t >= 570 && t <= 900;
 }
 
 async function getToken() {
@@ -61,7 +61,7 @@ function scoreSignal(price, vwap, prevHigh, prevLow) {
   return { bull, bear, total, strength, signal };
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (!isMarketHours()) {
     return res.json({ status: 'outside market hours' });
   }
