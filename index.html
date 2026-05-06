@@ -333,13 +333,17 @@ input[type=“password”] { letter-spacing: 0.1em; }
 
 <script>
 const S = {
-  token: null, connected: false, pollTimer: null, optionsTimer: null,
+token: null, connected: false, pollTimer: null, optionsTimer: null, positionsTimer: null,
   bnLTP: null, vwapCumPV: 0, vwapCumVol: 0, vwapVal: null,
   callOI: null, putOI: null, callIV: null, putIV: null,
   ivBaseline: null, bnOpen: null, lastSignalFired: null,
   tradedToday: null, tradeResult: null,
   newsChecks: { oil: false, war: false, crash: false },
   notifGranted: false, _lastAutoRun: null,
+  entryPremium: null, activeSignalType: null, exitFired: false,
+  _sustainedStart: null, _sustainedType: null, position: null,
+  timeWarning1130: false, timeWarning300: false,
+
 };
 
 const KITE_API_KEY = '6rsvfsxez9gb3rw3';
