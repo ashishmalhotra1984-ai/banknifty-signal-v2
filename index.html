@@ -438,9 +438,12 @@ async function kiteConnect() {
     const bnData = json.data['NSE:NIFTY BANK'];
     if (bnData) onBNQuote(bnData);
     fetchPrevDayLevels();
-    S.pollTimer    = setInterval(pollBNPrice, 5000);
-    S.optionsTimer = setInterval(pollOptionsData, 30000);
-    setTimeout(pollOptionsData, 2000);
+   S.pollTimer    = setInterval(pollBNPrice, 5000);
+S.optionsTimer = setInterval(pollOptionsData, 30000);
+S.positionsTimer = setInterval(pollPositions, 10000);
+setTimeout(pollOptionsData, 2000);
+setTimeout(pollPositions, 3000);
+
   } catch(e) {
     showMsg('connectMsg', '❌ Network error: ' + e.message, 'err');
   }
@@ -500,7 +503,12 @@ function onBNQuote(data) {
 
 function kiteDisconnect() {
   if (S.pollTimer)    { clearInterval(S.pollTimer);    S.pollTimer = null; }
-  if (S.optionsTimer) { clearInterval(S.optionsTimer); S.optionsTimer = null; }
+ if (S.optionsTimer) { clearInterval(S.optionsTimer); S.optionsTimer = null; }
+if (S.positionsTimer) { clearInterval(S.positionsTimer); S.positionsTimer = null; }
+S.position = null;
+S.exitFired = false;
+const pc = document.getElementById('positionCard');
+if (pc) pc.style.display = 'none';
   S.connected = false;
   setLiveStatus('disconnected');
   document.getElementById('connectedRow').style.display = 'none';
@@ -576,6 +584,7 @@ function autoAnalyze() {
   if (S._lastAutoRun && Date.now()-S._lastAutoRun < 5000) return;
   S._lastAutoRun = Date.now();
   analyzeSignal(true);
+  checkTimeWarnings();
 }
 
 function analyzeSignal(silent=false) {
@@ -619,8 +628,24 @@ function analyzeSignal(silent=false) {
   const sl=signalType==='BUY CALL'?Math.round(price-price*0.005):Math.round(price+price*0.005);
   const target=signalType==='BUY CALL'?Math.round(price+price*0.01):Math.round(price-price*0.01);
   renderSignal({signalType,strength,bull,bear,total,reasons,override,strike,sl,target,ts});
-  if(strength>=90&&signalType!=='STAY OUT'&&!override?.verdict?.includes('STAY OUT')){const key=`${signalType}-${Math.floor(Date.now()/30000)}`;if(S.lastSignalFired!==key){S.lastSignalFired=key;fireAlert(signalType,strength,price,strike);}}
+  if(strength>=100&&signalType!=='STAY OUT'&&!override?.verdict?.includes('STAY OUT')){
+  const now = Date.now();
+  const key = `${signalType}-${Math.floor(now/30000)}`;
+  if(!S._sustainedStart || S._sustainedType !== signalType) {
+    S._sustainedStart = now;
+    S._sustainedType = signalType;
+  }
+  const sustainedSeconds = (now - S._sustainedStart) / 1000;
+  if(sustainedSeconds >= 60 && S.lastSignalFired !== key) {
+    S.lastSignalFired = key;
+    S._sustainedStart = null;
+    fireAlert(signalType, strength, price, strike);
+  }
+} else {
+  S._sustainedStart = null;
+  S._sustainedType = null;
 }
+
 
 function renderBlocked(ts) {
   document.getElementById('signalOutput').style.display='block';
@@ -725,6 +750,140 @@ function loadConfig(){
   document.getElementById('configCode').value='';document.getElementById('savedCodeDisplay').style.display='none';
   showMsg('configMsg','✓ Values restored!','ok');
 }
+
+  async function pollPositions() {
+  if (!S.token || !S.connected) return;
+  try {
+    const res = await fetch(`/api/positions?token=${encodeURIComponent(S.token)}&api_key=${KITE_API_KEY}`);
+    const json = await res.json();
+    if (json.status !== 'success') return;
+    const all = [...(json.data?.net || []), ...(json.data?.day || [])];
+    const bnPos = all.find(p =>
+      p.tradingsymbol?.includes('BANKNIFTY') &&
+      (p.tradingsymbol?.includes('CE') || p.tradingsymbol?.includes('PE')) &&
+      p.quantity !== 0
+    );
+    if (bnPos) { S.position = bnPos; renderPositionCard(bnPos); }
+    else { S.position = null; const c = document.getElementById('positionCard'); if(c) c.style.display='none'; }
+  } catch(e) { console.warn('Positions fetch failed', e); }
+}
+
+function renderPositionCard(p) {
+  let card = document.getElementById('positionCard');
+  if (!card) {
+    card = document.createElement('div');
+    card.id = 'positionCard';
+    card.className = 'card';
+    const btn = document.getElementById('analyzeBtn');
+    btn.parentNode.insertBefore(card, btn.nextSibling);
+  }
+  card.style.display = 'block';
+  const isPE = p.tradingsymbol?.includes('PE');
+  const pnl = p.pnl || 0;
+  const pnlColor = pnl >= 0 ? 'var(--call)' : 'var(--put)';
+  const avgPrice = p.average_price || 0;
+  const ltp = p.last_price || 0;
+  const target2x = (avgPrice * 2).toFixed(0);
+  const slPrice = (avgPrice * 0.8).toFixed(0);
+  const pnlPct = avgPrice > 0 ? ((ltp - avgPrice) / avgPrice * 100).toFixed(1) : 0;
+  if (!S.entryPremium && avgPrice > 0) {
+    S.entryPremium = avgPrice;
+    S.activeSignalType = isPE ? 'BUY PUT' : 'BUY CALL';
+    S.exitFired = false;
+  }
+  card.innerHTML = `
+    <div class="card-title">
+      <div class="dot" style="background:${pnl>=0?'var(--call)':'var(--put)'}"></div>
+      OPEN POSITION · LIVE
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+      <div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Instrument</div>
+      <div style="font-size:11px;font-weight:700;color:${isPE?'var(--put)':'var(--call)'}">${p.tradingsymbol}</div></div>
+      <div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Qty</div>
+      <div style="font-size:12px">${Math.abs(p.quantity)}</div></div>
+      <div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Avg Entry</div>
+      <div style="font-size:12px">₹${avgPrice.toFixed(2)}</div></div>
+      <div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">LTP</div>
+      <div style="font-size:12px;color:${pnlColor}">₹${ltp.toFixed(2)}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:10px;background:var(--s2);border-radius:6px;margin-bottom:10px">
+      <div style="text-align:center">
+        <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;margin-bottom:4px">P&L</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${pnlColor}">${pnl>=0?'+':''}₹${pnl.toFixed(0)}</div>
+        <div style="font-size:9px;color:${pnlColor}">${pnlPct}%</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;margin-bottom:4px">2x Target</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--call)">₹${target2x}</div>
+        <div style="font-size:9px;color:var(--muted2)">exit at 2x</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;margin-bottom:4px">20% SL</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--put)">₹${slPrice}</div>
+        <div style="font-size:9px;color:var(--muted2)">below entry</div>
+      </div>
+    </div>
+    <div id="positionStatus" style="font-size:11px;color:var(--muted2);letter-spacing:0.05em">👁 Watching for exit conditions...</div>
+  `;
+  checkPositionExits(p, ltp, avgPrice);
+}
+
+function checkPositionExits(p, ltp, avgPrice) {
+  if (!p || S.exitFired) return;
+  const target2x = avgPrice * 2;
+  const slLevel = avgPrice * 0.8;
+  const statusEl = document.getElementById('positionStatus');
+  if (ltp >= target2x) {
+    S.exitFired = true;
+    sendTelegramMessage(`🎯 *2X TARGET HIT — EXIT NOW*\n\nInstrument: ${p.tradingsymbol}\nEntry: ₹${avgPrice.toFixed(0)} → LTP: ₹${ltp.toFixed(0)}\nP&L: +₹${p.pnl?.toFixed(0)}\nTime: ${getISTTimeStr()} IST\n\n_BankNifty Signal V3_`);
+    showTimeWarningPopup('🎯 2X TARGET HIT — EXIT', `${p.tradingsymbol} · ₹${ltp.toFixed(0)}`);
+    if(statusEl){statusEl.textContent='🎯 2X TARGET HIT — EXIT NOW';statusEl.style.color='var(--call)';}
+    return;
+  }
+  if (ltp <= slLevel) {
+    S.exitFired = true;
+    sendTelegramMessage(`🚨 *SL BREACH — EXIT NOW*\n\nInstrument: ${p.tradingsymbol}\nEntry: ₹${avgPrice.toFixed(0)} → LTP: ₹${ltp.toFixed(0)}\nLoss: ₹${p.pnl?.toFixed(0)}\nTime: ${getISTTimeStr()} IST\n\n_BankNifty Signal V3_`);
+    showTimeWarningPopup('🚨 SL BREACH — EXIT NOW', `${p.tradingsymbol} · LTP dropped 20% below entry`);
+    if(statusEl){statusEl.textContent='🚨 SL BREACH — EXIT NOW';statusEl.style.color='var(--put)';}
+    return;
+  }
+  const pct = ((ltp-avgPrice)/avgPrice*100).toFixed(1);
+  if(statusEl) statusEl.textContent=`👁 ${pct}% vs entry · 2x at ₹${(avgPrice*2).toFixed(0)} · SL at ₹${(avgPrice*0.8).toFixed(0)}`;
+}
+
+function checkTimeWarnings() {
+  const t = getISTMinutes();
+  if(t>=690&&t<=692&&!S.timeWarning1130){
+    S.timeWarning1130=true;
+    sendTelegramMessage('⏰ PRIMARY WINDOW CLOSING — 11:30 AM IST\n\nConsider exiting open positions. Extended window now active.\n\n_BankNifty Signal V3_');
+    showTimeWarningPopup('⏰ PRIMARY WINDOW CLOSING','Extended window — threshold rises. Consider exiting.');
+  }
+  if(t>=900&&t<=902&&!S.timeWarning300){
+    S.timeWarning300=true;
+    sendTelegramMessage('🚨 CLOSE ALL POSITIONS — 3:00 PM IST\n\n20 minutes to auto square-off. Exit now.\n\n_BankNifty Signal V3_');
+    showTimeWarningPopup('🚨 CLOSE ALL POSITIONS','20 min to 3:20 PM square-off. Exit now.');
+  }
+}
+
+async function sendTelegramMessage(msg) {
+  try {
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({chat_id:TELEGRAM_CHAT_ID,text:msg,parse_mode:'Markdown'})
+    });
+  } catch(e){console.warn('Telegram message failed',e);}
+}
+
+function showTimeWarningPopup(title, body) {
+  const popup=document.getElementById('signalPopup');
+  popup.className='show put-popup';
+  document.getElementById('popupSignal').textContent=title;
+  document.getElementById('popupSignal').className='popup-signal put';
+  document.getElementById('popupMeta').textContent=body;
+  setTimeout(closePopup,20000);
+}
+
 </script>
 
 </body>
